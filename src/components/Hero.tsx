@@ -30,6 +30,7 @@ const Hero = () => {
             <Button 
               size="lg" 
               className="bg-white text-primary hover:bg-white/90 shadow-elegant text-lg px-8 py-6 rounded-xl font-semibold transition-smooth"
+              onClick={() => document.getElementById('intake')?.scrollIntoView({ behavior: 'smooth' })}
             >
               <MessageCircle className="mr-2 h-5 w-5" />
               Start Your Journey

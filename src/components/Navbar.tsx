@@ -44,6 +44,7 @@ const Navbar = () => {
           <div className="hidden md:block">
             <Button 
               className="bg-primary hover:bg-primary-dark text-primary-foreground shadow-card transition-smooth"
+              onClick={() => document.getElementById('intake')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Start Your Journey
             </Button>
@@ -79,7 +80,10 @@ const Navbar = () => {
               <div className="px-4 pt-2">
                 <Button 
                   className="w-full bg-primary hover:bg-primary-dark text-primary-foreground"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    setIsOpen(false);
+                    document.getElementById('intake')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
                   Start Your Journey
                 </Button>
