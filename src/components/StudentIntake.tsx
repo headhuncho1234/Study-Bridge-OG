@@ -5,12 +5,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, User, GraduationCap, DollarSign, Globe } from "lucide-react";
+import { ArrowRight, User, GraduationCap, DollarSign, Globe, Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const StudentIntake = () => {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false);
+  const [aiRecommendations, setAiRecommendations] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -23,17 +26,66 @@ const StudentIntake = () => {
     scholarshipInterest: false
   });
 
-  const totalSteps = 4;
+  const totalSteps = 5;
+
+  const generatePersonalizedRoadmap = async () => {
+    setIsGeneratingRoadmap(true);
+    
+    try {
+      const prompt = `Based on this student profile, generate a personalized study abroad roadmap with specific recommendations:
+
+Student Profile:
+- Name: ${formData.name}
+- Country: ${formData.country}
+- Field of Study: ${formData.fieldOfStudy}
+- Degree Level: ${formData.degreeLevel}
+- Budget: ${formData.budget}
+- Preferred Countries: ${formData.preferredCountries.join(", ")}
+- Housing Preference: ${formData.housingPreference}
+- Scholarship Interest: ${formData.scholarshipInterest ? "Yes" : "No"}
+
+Please provide:
+1. Top 3 specific university recommendations with reasons
+2. Relevant scholarship opportunities
+3. Step-by-step application timeline
+4. Visa requirements and tips
+5. Financial planning advice
+6. Housing recommendations
+
+Keep it practical and actionable. Format as clear bullet points.`;
+
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: { message: prompt }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setAiRecommendations(data.response);
+      setCurrentStep(5); // Move to results step
+      
+      toast({
+        title: "Personalized Roadmap Generated! ✨",
+        description: "Your AI-powered recommendations are ready!"
+      });
+    } catch (error) {
+      console.error('Error generating roadmap:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Please try again. There was an issue generating your roadmap.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingRoadmap(false);
+    }
+  };
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Generate personalized roadmap
-      toast({
-        title: "Profile Created Successfully! 🎉",
-        description: "Your personalized roadmap is being generated. Check your email for next steps."
-      });
+      generatePersonalizedRoadmap();
     }
   };
 
@@ -242,6 +294,32 @@ const StudentIntake = () => {
           </div>
         );
 
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
+              <h3 className="text-2xl font-bold mb-2">Your Personalized Roadmap</h3>
+              <p className="text-muted-foreground">AI-generated recommendations just for you</p>
+            </div>
+            
+            {isGeneratingRoadmap ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                <p className="text-muted-foreground">Generating your personalized roadmap...</p>
+              </div>
+            ) : (
+              <div className="bg-muted rounded-lg p-6">
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-line text-foreground">
+                    {aiRecommendations}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
       default:
         return null;
     }
@@ -285,13 +363,49 @@ const StudentIntake = () => {
                 Previous
               </Button>
               
-              <Button 
-                onClick={handleNext}
-                className="bg-primary hover:bg-primary-dark text-primary-foreground"
-              >
-                {currentStep === totalSteps ? "Generate My Roadmap" : "Next"}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              {currentStep < 5 && (
+                <Button 
+                  onClick={handleNext}
+                  disabled={isGeneratingRoadmap}
+                  className="bg-primary hover:bg-primary-dark text-primary-foreground"
+                >
+                  {isGeneratingRoadmap ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      {currentStep === 4 ? "Generate My Roadmap" : "Next"}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              {currentStep === 5 && (
+                <Button 
+                  onClick={() => {
+                    setCurrentStep(1);
+                    setFormData({
+                      name: "",
+                      email: "",
+                      country: "",
+                      fieldOfStudy: "",
+                      degreeLevel: "",
+                      budget: "",
+                      preferredCountries: [],
+                      housingPreference: "",
+                      scholarshipInterest: false
+                    });
+                    setAiRecommendations("");
+                  }}
+                  variant="outline"
+                  className="ml-auto"
+                >
+                  Start New Assessment
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
