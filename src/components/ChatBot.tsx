@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Send, Bot, User, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: number;
@@ -32,42 +33,31 @@ const ChatBot = () => {
     scrollToBottom();
   }, [messages]);
 
-  const generateBotResponse = (userMessage: string): string => {
-    const lowerMessage = userMessage.toLowerCase();
-    
-    if (lowerMessage.includes('scholarship') || lowerMessage.includes('funding')) {
-      return "I can help you find scholarships! Here are some options:\n\n🎓 **Merit-based scholarships**: Available in Engineering, Business, and Arts programs\n💰 **Need-based aid**: Up to $15,000 for qualifying students\n🌍 **Country-specific scholarships**: Special programs for students from developing countries\n\nWould you like me to help you find scholarships based on your field of study and budget?";
-    }
-    
-    if (lowerMessage.includes('visa') || lowerMessage.includes('interview')) {
-      return "Great question about visa preparation! Here's what I recommend:\n\n📋 **Common F-1 Visa Questions:**\n• Why did you choose this university?\n• How will you finance your studies?\n• What are your plans after graduation?\n\n💡 **Success Tips:**\n• Be honest and confident\n• Bring all required documents\n• Practice your answers beforehand\n\nWould you like me to simulate a visa interview with you?";
-    }
-    
-    if (lowerMessage.includes('housing') || lowerMessage.includes('accommodation')) {
-      return "Finding housing can be challenging! Here are your options:\n\n🏠 **On-Campus Housing**: $800-1200/month, includes utilities\n🏘️ **Off-Campus Apartments**: $600-1000/month, more independence\n👥 **Shared Housing**: $400-700/month, great for making friends\n\n📍 I can help you find housing near your university. Which city are you looking at?";
-    }
-    
-    if (lowerMessage.includes('school') || lowerMessage.includes('university') || lowerMessage.includes('college')) {
-      return "I'd love to help you find the perfect school! 🎯\n\n**Let me know:**\n• What field do you want to study?\n• What's your budget range?\n• Do you prefer urban or rural campuses?\n• Any specific countries you're considering?\n\nBased on your preferences, I can recommend schools with high acceptance rates for international students and available scholarships.";
-    }
-    
-    if (lowerMessage.includes('mental health') || lowerMessage.includes('stress') || lowerMessage.includes('anxiety')) {
-      return "Your mental health is important, and you're not alone in feeling this way. 💙\n\n**Resources available:**\n• Campus counseling services (usually free)\n• International student support groups\n• Peer mentorship programs\n• Crisis hotlines: 988 (US), 116 123 (UK)\n\n**Coping strategies:**\n• Connect with other international students\n• Maintain routines from home\n• Join clubs and activities\n\nWould you like help finding mental health resources at your specific university?";
-    }
+  const getChatResponse = async (userMessage: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: { message: userMessage }
+      });
 
-    if (lowerMessage.includes('budget') || lowerMessage.includes('cost') || lowerMessage.includes('money')) {
-      return "Smart thinking about budgeting! 💰 Here's a typical breakdown:\n\n**Annual Costs (US):**\n• Tuition: $20,000-50,000\n• Housing: $8,000-15,000\n• Food: $3,000-5,000\n• Books/Supplies: $1,000-2,000\n• Personal expenses: $2,000-4,000\n\n**Money-saving tips:**\n• Apply for scholarships early\n• Consider state schools for lower tuition\n• Look into on-campus jobs (up to 20hrs/week)\n\nWhich country are you planning to study in? I can give more specific estimates.";
+      if (error) {
+        console.error('Error calling chat function:', error);
+        return "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.";
+      }
+
+      return data.response;
+    } catch (error) {
+      console.error('Error in getChatResponse:', error);
+      return "I apologize, but I'm experiencing technical difficulties. Please try your question again.";
     }
-    
-    return "That's a great question! I'm here to help with all aspects of your international student journey:\n\n🎓 **Academic**: School selection, applications, scholarships\n🛂 **Immigration**: Visa guidance, document preparation\n🏠 **Living**: Housing, budgeting, local resources\n👥 **Social**: Community connections, mental health support\n\nCould you be more specific about what you'd like help with? The more details you provide, the better I can assist you!";
   };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
+    const userMessageText = inputValue;
     const newUserMessage: Message = {
       id: Date.now(),
-      text: inputValue,
+      text: userMessageText,
       sender: 'user',
       timestamp: new Date()
     };
@@ -76,18 +66,29 @@ const ChatBot = () => {
     setInputValue("");
     setIsLoading(true);
 
-    // Simulate AI processing delay
-    setTimeout(() => {
+    try {
+      const aiResponse = await getChatResponse(userMessageText);
+      
       const botResponse: Message = {
         id: Date.now() + 1,
-        text: generateBotResponse(inputValue),
+        text: aiResponse,
         sender: 'bot',
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, botResponse]);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      const errorResponse: Message = {
+        id: Date.now() + 1,
+        text: "I'm sorry, I'm having trouble processing your request right now. Please try again.",
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsLoading(false);
-    }, 1000 + Math.random() * 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
