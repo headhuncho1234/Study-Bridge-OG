@@ -3,7 +3,6 @@ import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import ChatBot from "@/components/ChatBot";
 import StudentIntake from "@/components/StudentIntake";
-import SampleResults from "@/components/SampleResults";
 
 const Index = () => {
   return (
@@ -24,8 +23,6 @@ const Index = () => {
         <div id="intake">
           <StudentIntake />
         </div>
-        
-        <SampleResults />
       </main>
       
       <footer className="bg-muted/30 py-12 px-4">
