@@ -32,27 +32,57 @@ const StudentIntake = () => {
     setIsGeneratingRoadmap(true);
     
     try {
-      const prompt = `Based on this student profile, generate a personalized study abroad roadmap with specific recommendations:
+      const prompt = `You are StudyBridge AI, an expert advisor for international students seeking to study in the United States. Based on this student profile, generate a comprehensive and personalized study plan with specific US university recommendations:
 
 Student Profile:
 - Name: ${formData.name}
-- Country: ${formData.country}
+- Country of Origin: ${formData.country}
 - Field of Study: ${formData.fieldOfStudy}
 - Degree Level: ${formData.degreeLevel}
 - Budget: ${formData.budget}
-- Preferred Countries: ${formData.preferredCountries.join(", ")}
+- Preferred US Regions: ${formData.preferredCountries.join(", ")}
 - Housing Preference: ${formData.housingPreference}
 - Scholarship Interest: ${formData.scholarshipInterest ? "Yes" : "No"}
 
-Please provide:
-1. Top 3 specific university recommendations with reasons
-2. Relevant scholarship opportunities
-3. Step-by-step application timeline
-4. Visa requirements and tips
-5. Financial planning advice
-6. Housing recommendations
+Please provide a detailed response with:
 
-Keep it practical and actionable. Format as clear bullet points.`;
+1. **TOP 5 US UNIVERSITIES** - Specific university names with:
+   - Why each university fits this student's profile
+   - Admission requirements and deadlines
+   - Approximate tuition costs and living expenses
+   - Notable programs in their field of study
+
+2. **SCHOLARSHIP OPPORTUNITIES** - Include:
+   - University-specific scholarships at recommended schools
+   - External scholarships for international students
+   - Merit-based and need-based options
+   - Application deadlines and requirements
+
+3. **APPLICATION TIMELINE** - Month-by-month plan including:
+   - Standardized test preparation (TOEFL/IELTS, GRE/GMAT, SAT)
+   - Application deadlines for recommended universities
+   - Visa application process timeline
+   - Financial documentation preparation
+
+4. **VISA GUIDANCE** - F-1 student visa requirements:
+   - Required documents and forms
+   - Interview preparation tips
+   - Financial proof requirements
+   - Timeline for visa application
+
+5. **FINANCIAL PLANNING** - Detailed breakdown:
+   - Estimated total costs for each recommended university
+   - Cost of living in different US regions
+   - Part-time work opportunities (on-campus jobs, CPT, OPT)
+   - Banking and financial setup advice
+
+6. **HOUSING & LIVING** - Practical advice:
+   - On-campus vs off-campus housing pros/cons
+   - Average housing costs in recommended university areas
+   - Cultural adaptation tips for US college life
+   - Essential items to bring/buy in the US
+
+Format as clear sections with bullet points and specific actionable advice. Be comprehensive but practical.`;
 
       const { data, error } = await supabase.functions.invoke('chat', {
         body: { message: prompt }
@@ -150,6 +180,9 @@ Keep it practical and actionable. Format as clear bullet points.`;
                     <SelectItem value="brazil">Brazil</SelectItem>
                     <SelectItem value="mexico">Mexico</SelectItem>
                     <SelectItem value="south-korea">South Korea</SelectItem>
+                    <SelectItem value="bangladesh">Bangladesh</SelectItem>
+                    <SelectItem value="pakistan">Pakistan</SelectItem>
+                    <SelectItem value="vietnam">Vietnam</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -175,12 +208,17 @@ Keep it practical and actionable. Format as clear bullet points.`;
                     <SelectValue placeholder="Select your field of interest" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="computer-science">Computer Science</SelectItem>
-                    <SelectItem value="engineering">Engineering</SelectItem>
-                    <SelectItem value="business">Business Administration</SelectItem>
-                    <SelectItem value="medicine">Medicine</SelectItem>
-                    <SelectItem value="arts">Liberal Arts</SelectItem>
-                    <SelectItem value="social-sciences">Social Sciences</SelectItem>
+                    <SelectItem value="computer-science">Computer Science & Information Technology</SelectItem>
+                    <SelectItem value="engineering">Engineering (All Disciplines)</SelectItem>
+                    <SelectItem value="business">Business Administration & Management</SelectItem>
+                    <SelectItem value="medicine">Medicine & Health Sciences</SelectItem>
+                    <SelectItem value="liberal-arts">Liberal Arts & Humanities</SelectItem>
+                    <SelectItem value="social-sciences">Social Sciences & Psychology</SelectItem>
+                    <SelectItem value="stem">STEM Fields (Science, Technology, Engineering, Math)</SelectItem>
+                    <SelectItem value="economics">Economics & Finance</SelectItem>
+                    <SelectItem value="law">Pre-Law & Legal Studies</SelectItem>
+                    <SelectItem value="communications">Communications & Media Studies</SelectItem>
+                    <SelectItem value="education">Education & Teaching</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -263,13 +301,13 @@ Keep it practical and actionable. Format as clear bullet points.`;
             <div className="text-center mb-6">
               <Globe className="h-12 w-12 text-primary mx-auto mb-4" />
               <h3 className="text-2xl font-bold mb-2">Destination Preferences</h3>
-              <p className="text-muted-foreground">Where would you like to study?</p>
+              <p className="text-muted-foreground">Which US regions interest you most?</p>
             </div>
             
             <div className="space-y-4">
-              <Label>Preferred Study Destinations (select all that apply)</Label>
+              <Label>Preferred US Regions (select all that apply)</Label>
               <div className="grid grid-cols-2 gap-4">
-                {["United States", "Canada", "United Kingdom", "Australia", "Germany", "Netherlands"].map((country) => (
+                {["Northeast (NY, MA, CT)", "Southeast (FL, GA, NC)", "Midwest (IL, MI, OH)", "Southwest (TX, AZ, NM)", "West Coast (CA, WA, OR)", "Mountain West (CO, UT, NV)"].map((country) => (
                   <div key={country} className="flex items-center space-x-2">
                     <Checkbox 
                       id={country}
@@ -284,10 +322,11 @@ Keep it practical and actionable. Format as clear bullet points.`;
               <div className="mt-6 p-4 bg-muted rounded-lg">
                 <h4 className="font-semibold mb-2">What happens next?</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Personalized university recommendations</li>
-                  <li>• Scholarship matching based on your profile</li>
-                  <li>• Step-by-step application roadmap</li>
-                  <li>• Visa guidance for your chosen countries</li>
+                  <li>• Top 5 US university recommendations with admission details</li>
+                  <li>• Specific scholarships for international students</li>
+                  <li>• Complete F-1 visa application timeline</li>
+                  <li>• Financial planning and cost breakdowns</li>
+                  <li>• Housing options and cultural adaptation tips</li>
                 </ul>
               </div>
             </div>
@@ -299,8 +338,8 @@ Keep it practical and actionable. Format as clear bullet points.`;
           <div className="space-y-6">
             <div className="text-center mb-6">
               <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">Your Personalized Roadmap</h3>
-              <p className="text-muted-foreground">AI-generated recommendations just for you</p>
+              <h3 className="text-2xl font-bold mb-2">Your US University Roadmap</h3>
+              <p className="text-muted-foreground">AI-generated plan for studying in America</p>
             </div>
             
             {isGeneratingRoadmap ? (
@@ -330,10 +369,10 @@ Keep it practical and actionable. Format as clear bullet points.`;
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
-            Create Your Student Profile
+            Find Your Perfect US University
           </h2>
           <p className="text-muted-foreground text-lg">
-            Get personalized recommendations in just 4 simple steps
+            Get AI-powered recommendations for studying in the United States
           </p>
         </div>
 
