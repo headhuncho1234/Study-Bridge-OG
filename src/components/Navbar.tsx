@@ -9,7 +9,7 @@ const Navbar = () => {
     { name: "Features", href: "#features", icon: Globe },
     { name: "AI Assistant", href: "#chatbot", icon: MessageCircle },
     { name: "Get Started", href: "#intake", icon: GraduationCap },
-    { name: "Community", href: "#community", icon: Users }
+    { name: "Community", href: "/community", icon: Users }
   ];
 
   return (
@@ -29,14 +29,25 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="flex items-center space-x-1 text-foreground hover:text-primary transition-colors font-medium"
-              >
-                <item.icon className="h-4 w-4" />
-                <span>{item.name}</span>
-              </a>
+              item.name === "Community" ? (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className="flex items-center space-x-1 text-foreground hover:text-primary transition-colors font-medium"
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.name}</span>
+                </a>
+              ) : (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className="flex items-center space-x-1 text-foreground hover:text-primary transition-colors font-medium"
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.name}</span>
+                </a>
+              )
             ))}
           </div>
 
@@ -67,15 +78,27 @@ const Navbar = () => {
           <div className="md:hidden border-t border-border/50 bg-white/95 backdrop-blur-sm">
             <div className="py-4 space-y-2">
               {navItems.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className="flex items-center space-x-2 px-4 py-2 text-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.name}</span>
-                </a>
+                item.name === "Community" ? (
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    className="flex items-center space-x-2 px-4 py-2 text-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.name}</span>
+                  </a>
+                ) : (
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    className="flex items-center space-x-2 px-4 py-2 text-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.name}</span>
+                  </a>
+                )
               ))}
               <div className="px-4 pt-2">
                 <Button 

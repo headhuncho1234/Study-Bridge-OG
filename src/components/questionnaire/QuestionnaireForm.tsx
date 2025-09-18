@@ -10,9 +10,6 @@ import { ArrowRight, ArrowLeft } from "lucide-react";
 interface QuestionnaireData {
   major: string;
   gpa: string;
-  satScore: string;
-  actScore: string;
-  subjectTests: string;
   preferredLocation: string[];
   budget: string;
   campusSize: string;
@@ -33,9 +30,6 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
   const [formData, setFormData] = useState<QuestionnaireData>({
     major: "",
     gpa: "",
-    satScore: "",
-    actScore: "",
-    subjectTests: "",
     preferredLocation: [],
     budget: "",
     campusSize: "",
@@ -46,7 +40,7 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
     constraints: ""
   });
 
-  const totalSteps = 4;
+  const totalSteps = 3;
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -163,41 +157,11 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold mb-2">Test Scores & Academic Details</h3>
-              <p className="text-muted-foreground">Provide test scores if available (optional but helpful)</p>
+              <h3 className="text-2xl font-bold mb-2">Preferences & Activities</h3>
+              <p className="text-muted-foreground">Help us find the best matches for you</p>
             </div>
             
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="satScore">SAT Score (optional)</Label>
-                <Input
-                  id="satScore"
-                  value={formData.satScore}
-                  onChange={(e) => setFormData(prev => ({ ...prev, satScore: e.target.value }))}
-                  placeholder="e.g., 1450 or 1200-1300"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="actScore">ACT Score (optional)</Label>
-                <Input
-                  id="actScore"
-                  value={formData.actScore}
-                  onChange={(e) => setFormData(prev => ({ ...prev, actScore: e.target.value }))}
-                  placeholder="e.g., 32 or 28-30"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="subjectTests">Subject Test Scores (optional)</Label>
-                <Input
-                  id="subjectTests"
-                  value={formData.subjectTests}
-                  onChange={(e) => setFormData(prev => ({ ...prev, subjectTests: e.target.value }))}
-                  placeholder="e.g., Math Level 2: 780, Chemistry: 750"
-                />
-              </div>
-
               <div>
                 <Label htmlFor="extracurriculars">Extracurricular Activities & Special Talents</Label>
                 <Textarea
@@ -208,19 +172,7 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
                   rows={3}
                 />
               </div>
-            </div>
-          </div>
-        );
 
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold mb-2">Preferences & Budget</h3>
-              <p className="text-muted-foreground">Help us find the best matches for you</p>
-            </div>
-            
-            <div className="space-y-4">
               <div>
                 <Label>Preferred U.S. Locations (select all that apply)</Label>
                 <div className="grid grid-cols-2 gap-3 mt-2">
@@ -286,7 +238,7 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
           </div>
         );
 
-      case 4:
+      case 3:
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">

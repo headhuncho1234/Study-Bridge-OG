@@ -1,17 +1,14 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, University } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import QuestionnaireForm from "./questionnaire/QuestionnaireForm";
-import MatchResults, { MatchData } from "./questionnaire/MatchResults";
 
 interface QuestionnaireData {
   major: string;
   gpa: string;
-  satScore: string;
-  actScore: string;
-  subjectTests: string;
   preferredLocation: string[];
   budget: string;
   campusSize: string;
@@ -24,9 +21,9 @@ interface QuestionnaireData {
 
 const StudentIntake = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
-  const [matchResults, setMatchResults] = useState<MatchData | null>(null);
 
   const generateMatches = async (formData: QuestionnaireData) => {
     setIsGeneratingMatches(true);
@@ -117,8 +114,10 @@ Output only JSON in this exact format:
       const jsonEnd = data.response.lastIndexOf('}') + 1;
       const jsonString = data.response.substring(jsonStart, jsonEnd);
       
-      const matchData: MatchData = JSON.parse(jsonString);
-      setMatchResults(matchData);
+      const matchData = JSON.parse(jsonString);
+      
+      // Navigate to results page with match data
+      navigate('/results', { state: { matchData } });
       
       toast({
         title: "University Matches Generated! ✨",
@@ -146,20 +145,8 @@ Output only JSON in this exact format:
 
   const handleStartNew = () => {
     setShowForm(false);
-    setMatchResults(null);
   };
 
-
-  // Show results if available
-  if (matchResults) {
-    return (
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto">
-          <MatchResults data={matchResults} onStartNew={handleStartNew} />
-        </div>
-      </section>
-    );
-  }
 
   // Show questionnaire form if started
   if (showForm) {

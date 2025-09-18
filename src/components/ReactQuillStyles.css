@@ -1,0 +1,47 @@
+/* React Quill Editor Styles */
+.quill {
+  background: white;
+  border-radius: 8px;
+}
+
+.ql-toolbar {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ql-container {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  font-family: inherit;
+}
+
+.ql-editor {
+  min-height: 200px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ql-editor.ql-blank::before {
+  color: #94a3b8;
+  font-style: normal;
+}
+
+/* Dark mode styles */
+.dark .quill {
+  background: hsl(var(--card));
+}
+
+.dark .ql-toolbar {
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--muted));
+}
+
+.dark .ql-container {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.dark .ql-editor {
+  color: hsl(var(--card-foreground));
+}
