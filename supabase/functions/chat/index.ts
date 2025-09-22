@@ -27,7 +27,14 @@ serve(async (req) => {
       throw new Error('Message is required');
     }
 
-    console.log('Received message for university matching, length:', message.length);
+    console.log('Received message for chat, length:', message.length);
+
+    // Check if this is a university matching request (contains schema/JSON instructions)
+    const isUniversityMatching = message.includes('questionnaire data') || message.includes('JSON') || message.includes('matches');
+    
+    const systemPrompt = isUniversityMatching 
+      ? 'You are a university matching AI assistant for U.S. students called StudyBridge. You generate JSON responses for university matching. Always return valid JSON matching the requested schema. Focus only on U.S. universities and colleges. Be accurate and helpful with university recommendations based on student profiles.'
+      : 'You are StudyBridge, a friendly and knowledgeable AI assistant for international students. Help with questions about studying in the U.S., including applications, scholarships, visas, housing, student life, and general guidance. Be helpful, encouraging, and provide practical advice. Keep responses conversational and supportive.';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -40,7 +47,7 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a university matching AI assistant for U.S. students called StudyBridge. You generate JSON responses for university matching. Always return valid JSON matching the requested schema. Focus only on U.S. universities and colleges. Be accurate and helpful with university recommendations based on student profiles.' 
+            content: systemPrompt
           },
           { role: 'user', content: message }
         ],
@@ -65,27 +72,29 @@ serve(async (req) => {
     const aiResponse = data.choices[0].message.content;
     console.log('AI response generated successfully, length:', aiResponse.length);
 
-    // Validate JSON response
-    try {
-      const jsonStart = aiResponse.indexOf('{');
-      const jsonEnd = aiResponse.lastIndexOf('}') + 1;
-      
-      if (jsonStart === -1 || jsonEnd === 0) {
-        throw new Error('No JSON found in response');
+    // Only validate JSON for university matching requests
+    if (isUniversityMatching) {
+      try {
+        const jsonStart = aiResponse.indexOf('{');
+        const jsonEnd = aiResponse.lastIndexOf('}') + 1;
+        
+        if (jsonStart === -1 || jsonEnd === 0) {
+          throw new Error('No JSON found in response');
+        }
+        
+        const jsonString = aiResponse.substring(jsonStart, jsonEnd);
+        const parsedJson = JSON.parse(jsonString);
+        
+        // Validate required fields
+        if (!parsedJson.matches || !Array.isArray(parsedJson.matches)) {
+          throw new Error('Invalid JSON structure: missing matches array');
+        }
+        
+        console.log('JSON validation successful, matches found:', parsedJson.matches.length);
+      } catch (jsonError) {
+        console.error('JSON validation error:', jsonError);
+        throw new Error(`Invalid JSON response: ${jsonError.message}`);
       }
-      
-      const jsonString = aiResponse.substring(jsonStart, jsonEnd);
-      const parsedJson = JSON.parse(jsonString);
-      
-      // Validate required fields
-      if (!parsedJson.matches || !Array.isArray(parsedJson.matches)) {
-        throw new Error('Invalid JSON structure: missing matches array');
-      }
-      
-      console.log('JSON validation successful, matches found:', parsedJson.matches.length);
-    } catch (jsonError) {
-      console.error('JSON validation error:', jsonError);
-      throw new Error(`Invalid JSON response: ${jsonError.message}`);
     }
 
     return new Response(JSON.stringify({ response: aiResponse }), {
