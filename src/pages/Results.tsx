@@ -42,6 +42,37 @@ const Results = () => {
     }
   }, [location.state, location.search, navigate]);
 
+  // Auto-save results for authenticated users with new match data
+  useEffect(() => {
+    const autoSaveResults = async () => {
+      if (user && matchData && location.state?.matchData) {
+        // Only auto-save if this is fresh data from questionnaire (not loaded from saved results)
+        const title = `University Matches - ${new Date().toLocaleDateString()}`;
+        
+        try {
+          const { error } = await supabase
+            .from('saved_results')
+            .insert({
+              user_id: user.id,
+              title,
+              data: JSON.parse(JSON.stringify(matchData))
+            });
+
+          if (error) throw error;
+
+          toast({
+            title: "Results Automatically Saved! ✨",
+            description: "Your matches have been saved to your profile.",
+          });
+        } catch (error) {
+          console.error('Error auto-saving results:', error);
+        }
+      }
+    };
+
+    autoSaveResults();
+  }, [user, matchData, location.state, toast]);
+
   const handleSaveResults = async () => {
     if (!matchData) return;
 
