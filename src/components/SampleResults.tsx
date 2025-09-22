@@ -168,7 +168,12 @@ const SampleResults = () => {
                       ))}
                     </div>
                     
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(uni.name + " university official website")}`, '_blank')}
+                    >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       View Details
                     </Button>
@@ -212,7 +217,13 @@ const SampleResults = () => {
                       </div>
                     </div>
                     
-                    <Button size="sm" className="w-full">Apply Now</Button>
+                    <Button 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(scholarship.name + " scholarship application")}`, '_blank')}
+                    >
+                      Apply Now
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
