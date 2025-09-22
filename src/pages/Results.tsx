@@ -20,32 +20,63 @@ const Results = () => {
       setUser(data.user);
     });
 
-    // Get match data from navigation state
+    // Get match data from navigation state or URL params
     if (location.state?.matchData) {
       setMatchData(location.state.matchData);
     } else {
-      // Redirect to home if no data
-      navigate('/');
+      // Check for data in URL params (from saved results)
+      const urlParams = new URLSearchParams(location.search);
+      const dataParam = urlParams.get('data');
+      if (dataParam) {
+        try {
+          const parsedData = JSON.parse(decodeURIComponent(dataParam));
+          setMatchData(parsedData);
+        } catch (error) {
+          console.error('Error parsing URL data:', error);
+          navigate('/');
+        }
+      } else {
+        // Redirect to home if no data
+        navigate('/');
+      }
     }
-  }, [location.state, navigate]);
+  }, [location.state, location.search, navigate]);
 
-  const handleSaveResults = () => {
+  const handleSaveResults = async () => {
     if (!matchData) return;
 
     const title = `University Matches - ${new Date().toLocaleDateString()}`;
     
     if (user) {
-      // TODO: Implement Supabase saving when user is logged in
-      toast({
-        title: "Saved to Profile",
-        description: "Your results have been saved to your profile.",
-      });
+      try {
+        const { error } = await supabase
+          .from('saved_results')
+          .insert({
+            user_id: user.id,
+            title,
+            data: JSON.parse(JSON.stringify(matchData))
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Saved to Profile",
+          description: "Your results have been saved to your profile.",
+        });
+      } catch (error) {
+        console.error('Error saving results:', error);
+        toast({
+          title: "Error saving results",
+          description: "Please try again later.",
+          variant: "destructive"
+        });
+      }
     } else {
       // Save to localStorage for guests
       saveResult(title, matchData);
       toast({
-        title: "Saved to Profile",
-        description: "Your results have been saved locally. View in Saved Results.",
+        title: "Saved Locally",
+        description: "Your results have been saved locally. Sign in to save permanently.",
       });
     }
   };
