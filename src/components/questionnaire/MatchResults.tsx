@@ -15,6 +15,9 @@ import {
   RefreshCw
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export interface MatchData {
   generated_at: string;
@@ -71,10 +74,108 @@ interface MatchResultsProps {
   onStartNew: () => void;
 }
 
+const getChatResponse = async (userMessage: string): Promise<any> => {
+    try {
+      console.log('Sending message to chat function:', userMessage.slice(0, 100) + '...');
+      
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: { message: userMessage }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Function error: ${error.message}`);
+      }
+
+      if (!data || !data.response) {
+        console.error('Invalid response from function:', data);
+        throw new Error('No response data received');
+      }
+
+      console.log('Received response from chat function, length:', data.response.length);
+      
+      // Try to parse JSON from the response
+      let jsonStart = data.response.indexOf('{');
+      if (jsonStart === -1) {
+        // Look for ```json block
+        jsonStart = data.response.indexOf('```json');
+        if (jsonStart !== -1) {
+          jsonStart = data.response.indexOf('{', jsonStart);
+        }
+      }
+      
+      if (jsonStart === -1) {
+        console.error('Full response:', data.response);
+        throw new Error('No JSON found in response');
+      }
+      
+      const jsonEnd = data.response.lastIndexOf('}') + 1;
+      if (jsonEnd <= jsonStart) {
+        console.error('Invalid JSON structure, start:', jsonStart, 'end:', jsonEnd);
+        throw new Error('Invalid JSON structure in response');
+      }
+      
+      const jsonString = data.response.substring(jsonStart, jsonEnd);
+      console.log('Extracted JSON string:', jsonString.slice(0, 200) + '...');
+      
+      try {
+        const parsedData = JSON.parse(jsonString);
+        console.log('Successfully parsed JSON:', parsedData);
+        
+        // Validate the structure
+        if (!parsedData.matches || !Array.isArray(parsedData.matches)) {
+          console.error('Invalid data structure:', parsedData);
+          throw new Error('Invalid response structure: missing matches array');
+        }
+        
+        return parsedData;
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Failed to parse JSON string:', jsonString);
+        throw new Error(`Failed to parse response JSON: ${parseError.message}`);
+      }
+    } catch (error) {
+      console.error('Error in getChatResponse:', error);
+      throw error;
+    }
+  };
+
 const MatchResults = ({ data, onStartNew }: MatchResultsProps) => {
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState("match_score");
   const [showTop5Only, setShowTop5Only] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const saveResults = async (resultsData: any) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('saved_results')
+        .insert([
+          {
+            title: `University Matches - ${new Date().toLocaleDateString()}`,
+            data: resultsData,
+            user_id: user.id
+          }
+        ]);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Results saved!",
+        description: "Your matches have been saved to your profile.",
+      });
+    } catch (error) {
+      console.error('Error saving results:', error);
+      toast({
+        title: "Save failed",
+        description: "Could not save your results. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const sortedMatches = [...data.matches].sort((a, b) => {
     switch (sortBy) {
@@ -218,7 +319,16 @@ const MatchResults = ({ data, onStartNew }: MatchResultsProps) => {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <CardTitle className="text-xl">{match.name}</CardTitle>
+                    <CardTitle className="text-xl">
+                      <a 
+                        href={`https://www.google.com/search?q=${encodeURIComponent(match.name + " university official website")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-primary hover:underline transition-colors"
+                      >
+                        {match.name}
+                      </a>
+                    </CardTitle>
                     <Badge className={getScoreColor(match.match_score)}>
                       {match.match_score}% Match
                     </Badge>
@@ -301,7 +411,16 @@ const MatchResults = ({ data, onStartNew }: MatchResultsProps) => {
                           <div key={schIndex} className="bg-muted/50 p-3 rounded-lg">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <p className="font-medium">{scholarship.name}</p>
+                                <p className="font-medium">
+                                  <a 
+                                    href={`https://www.google.com/search?q=${encodeURIComponent(scholarship.name + " scholarship application")}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:text-primary hover:underline transition-colors"
+                                  >
+                                    {scholarship.name}
+                                  </a>
+                                </p>
                                 <p className="text-sm text-muted-foreground">{scholarship.eligibility_summary}</p>
                               </div>
                               <div className="text-right">
@@ -343,7 +462,16 @@ const MatchResults = ({ data, onStartNew }: MatchResultsProps) => {
               {data.scholarship_recommendations.slice(0, 6).map((scholarship, index) => (
                 <div key={index} className="bg-muted/30 p-4 rounded-lg">
                   <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium">{scholarship.name}</h4>
+                    <h4 className="font-medium">
+                      <a 
+                        href={scholarship.application_link || `https://www.google.com/search?q=${encodeURIComponent(scholarship.name + " scholarship application")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-primary hover:underline transition-colors"
+                      >
+                        {scholarship.name}
+                      </a>
+                    </h4>
                     <Badge className={getScoreColor(scholarship.match_score)}>
                       {scholarship.match_score}%
                     </Badge>
@@ -359,9 +487,14 @@ const MatchResults = ({ data, onStartNew }: MatchResultsProps) => {
                     )}
                   </div>
                   {scholarship.application_link && (
-                    <Button variant="link" size="sm" className="p-0 h-auto mt-2">
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="p-0 h-auto mt-2"
+                      onClick={() => window.open(scholarship.application_link!, '_blank')}
+                    >
                       <ExternalLink className="h-3 w-3 mr-1" />
-                      Application Link
+                      Apply Now
                     </Button>
                   )}
                 </div>
