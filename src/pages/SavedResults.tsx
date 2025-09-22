@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,7 @@ import {
   Eye, 
   Trash2, 
   Share, 
-  ArrowLeft,
+  Home,
   Calendar,
   GraduationCap
 } from "lucide-react";
@@ -75,14 +75,15 @@ const SavedResults = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/profile')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Profile
-          </Button>
+          <Link to="/">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Home className="h-4 w-4" />
+              Back to Home
+            </Button>
+          </Link>
           
           <div className="text-center">
             <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">

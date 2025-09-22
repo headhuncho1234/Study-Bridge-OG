@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,8 @@ import {
   Flag, 
   TrendingUp,
   Pin,
-  Filter
+  Filter,
+  Home
 } from "lucide-react";
 import CreatePostModal from "@/components/community/CreatePostModal";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -147,6 +149,14 @@ const Community = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <Link to="/">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </Link>
+          </div>
           <h1 className="text-4xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">
             Community Hub
           </h1>

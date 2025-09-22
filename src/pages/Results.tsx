@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Home } from "lucide-react";
 import MatchResults, { MatchData } from "@/components/questionnaire/MatchResults";
 import { saveResult } from "@/hooks/useLocalStorage";
 import { useToast } from "@/hooks/use-toast";
@@ -72,14 +72,25 @@ const Results = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Button>
+          <div className="flex gap-2">
+            <Link to="/">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Home className="h-4 w-4" />
+                Home
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Questionnaire
+            </Button>
+          </div>
           
           <Button
             onClick={handleSaveResults}

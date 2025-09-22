@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Sparkles, University } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,11 +126,80 @@ Output only JSON in this exact format:
       });
     } catch (error) {
       console.error('Error generating matches:', error);
+      
+      // More detailed error handling
+      let errorMessage = "Please try again. There was an issue generating your matches.";
+      if (error instanceof Error) {
+        if (error.message.includes('network')) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else if (error.message.includes('timeout')) {
+          errorMessage = "Request timed out. Please try again.";
+        } else if (error.message.includes('JSON')) {
+          errorMessage = "Invalid response format. Please try again.";
+        }
+      }
+      
       toast({
         title: "Generation Failed",
-        description: "Please try again. There was an issue generating your matches.",
+        description: errorMessage,
         variant: "destructive"
       });
+      
+      // Fallback matches for better UX
+      const fallbackData = {
+        generated_at: new Date().toISOString(),
+        profile_summary: {
+          major: formData.major,
+          GPA: formData.gpa,
+          enrollmentType: formData.enrollmentType,
+          budget: formData.budget
+        },
+        matches: [
+          {
+            name: "State University (Example)",
+            city: "Example City",
+            state: "CA",
+            unit_id: null,
+            match_score: 85,
+            fit: {
+              academic: 85,
+              program: 80,
+              financial: 90,
+              location: 85,
+              culture: 80
+            },
+            why_match: "This is a fallback example. Please try generating matches again for real results.",
+            suggested_next_steps: ["Try Again", "Visit Website"],
+            application_deadline: {
+              type: "Regular",
+              date: null,
+              needs_verification: true
+            },
+            estimated_net_price: {
+              value: "Contact for pricing",
+              currency: "USD",
+              needs_verification: true
+            },
+            scholarship_matches: []
+          }
+        ],
+        scholarship_recommendations: [],
+        assumptions: ["This is fallback data due to generation error"],
+        notes: "Please try generating matches again for accurate results."
+      };
+      
+      // Show fallback if user wants to proceed
+      setTimeout(() => {
+        const showSampleButton = document.createElement('button');
+        showSampleButton.textContent = 'View Sample';
+        showSampleButton.className = 'bg-primary text-primary-foreground px-4 py-2 rounded';
+        showSampleButton.onclick = () => navigate('/results', { state: { matchData: fallbackData } });
+        
+        toast({
+          title: "Show Sample Results?",
+          description: "Would you like to see sample results while we fix the issue?"
+        });
+      }, 2000);
     } finally {
       setIsGeneratingMatches(false);
     }
