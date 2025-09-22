@@ -9,6 +9,7 @@ import QuestionnaireForm from "./questionnaire/QuestionnaireForm";
 
 interface QuestionnaireData {
   major: string;
+  customMajor?: string;
   gpa: string;
   preferredLocation: string[];
   budget: string;
@@ -30,9 +31,14 @@ const StudentIntake = () => {
     setIsGeneratingMatches(true);
     
     try {
+      // Use custom major if "other" is selected
+      const actualMajor = formData.major === "other" && formData.customMajor 
+        ? formData.customMajor 
+        : formData.major;
+
       const prompt = `You are an admissions-match generator. Use ONLY the questionnaire data provided. Consider only U.S. colleges/universities. Do NOT invent facts; if you include time-sensitive items (deadlines, acceptance rates, costs), mark them as "needs_verification": true unless an external enrichment step is performed. Output MUST be valid JSON following the schema exactly.
 
-Here is the student profile (QUESTIONNAIRE_ANSWERS): ${JSON.stringify(formData)}
+Here is the student profile (QUESTIONNAIRE_ANSWERS): ${JSON.stringify({...formData, actualMajor})}
 
 TASK:
 1) Produce up to 10 U.S. university matches ranked by match_score (0-100).
@@ -44,7 +50,7 @@ Output only JSON in this exact format:
 {
   "generated_at": "ISO_8601_timestamp",
   "profile_summary": {
-    "major": "${formData.major}",
+    "major": "${actualMajor}",
     "GPA": "${formData.gpa}",
     "enrollmentType": "${formData.enrollmentType}",
     "budget": "${formData.budget}"
@@ -118,88 +124,105 @@ Output only JSON in this exact format:
       const matchData = JSON.parse(jsonString);
       
       // Navigate to results page with match data
-      navigate('/results', { state: { matchData } });
+      navigate('/results', { 
+        state: { 
+          matchData: {
+            ...matchData,
+            actualMajor: actualMajor,
+            originalProfile: formData
+          }
+        } 
+      });
       
       toast({
         title: "University Matches Generated! ✨",
-        description: "Your personalized matches are ready!"
+        description: `Found ${matchData.matches?.length || 0} personalized matches for ${actualMajor}!`
       });
     } catch (error) {
       console.error('Error generating matches:', error);
       
-      // More detailed error handling
-      let errorMessage = "Please try again. There was an issue generating your matches.";
-      if (error instanceof Error) {
-        if (error.message.includes('network')) {
-          errorMessage = "Network error. Please check your connection and try again.";
-        } else if (error.message.includes('timeout')) {
-          errorMessage = "Request timed out. Please try again.";
-        } else if (error.message.includes('JSON')) {
-          errorMessage = "Invalid response format. Please try again.";
-        }
-      }
+      // Enhanced fallback with actual major
+      const actualMajor = formData.major === "other" && formData.customMajor 
+        ? formData.customMajor 
+        : formData.major;
       
-      toast({
-        title: "Generation Failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      
-      // Fallback matches for better UX
       const fallbackData = {
         generated_at: new Date().toISOString(),
         profile_summary: {
-          major: formData.major,
+          major: actualMajor,
           GPA: formData.gpa,
           enrollmentType: formData.enrollmentType,
           budget: formData.budget
         },
         matches: [
           {
-            name: "State University (Example)",
+            name: `Sample University for ${actualMajor}`,
             city: "Example City",
             state: "CA",
             unit_id: null,
             match_score: 85,
             fit: {
               academic: 85,
-              program: 80,
-              financial: 90,
+              program: 90,
+              financial: 80,
               location: 85,
               culture: 80
             },
-            why_match: "This is a fallback example. Please try generating matches again for real results.",
-            suggested_next_steps: ["Try Again", "Visit Website"],
+            why_match: `Strong ${actualMajor} program with excellent faculty and research opportunities that align with your academic profile.`,
+            suggested_next_steps: ["Try Again", "Visit Website", "Contact Admissions"],
             application_deadline: {
               type: "Regular",
-              date: null,
+              date: "2025-01-15",
               needs_verification: true
             },
             estimated_net_price: {
-              value: "Contact for pricing",
+              value: 25000,
               currency: "USD",
               needs_verification: true
             },
-            scholarship_matches: []
+            scholarship_matches: [
+              {
+                name: `${actualMajor} Excellence Scholarship`,
+                award_range: "$5,000-$15,000",
+                eligibility_summary: "Academic excellence in chosen field",
+                deadline: "2024-12-01",
+                needs_verification: true,
+                match_score: 80
+              }
+            ]
           }
         ],
-        scholarship_recommendations: [],
-        assumptions: ["This is fallback data due to generation error"],
-        notes: "Please try generating matches again for accurate results."
+        scholarship_recommendations: [
+          {
+            name: "Merit-Based Grant",
+            award_range: "$1,000-$5,000",
+            eligibility: "Academic achievement and leadership",
+            deadline: "2024-11-30",
+            application_link: null,
+            needs_verification: true,
+            match_score: 75
+          }
+        ],
+        assumptions: ["This is fallback data due to generation error", `Using custom major: ${actualMajor}`],
+        notes: "Please try generating matches again for accurate results. All information should be verified with institutions."
       };
       
-      // Show fallback if user wants to proceed
-      setTimeout(() => {
-        const showSampleButton = document.createElement('button');
-        showSampleButton.textContent = 'View Sample';
-        showSampleButton.className = 'bg-primary text-primary-foreground px-4 py-2 rounded';
-        showSampleButton.onclick = () => navigate('/results', { state: { matchData: fallbackData } });
-        
-        toast({
-          title: "Show Sample Results?",
-          description: "Would you like to see sample results while we fix the issue?"
-        });
-      }, 2000);
+      toast({
+        title: "Using Sample Data",
+        description: "Generation failed. Showing sample results - please try again.",
+        variant: "destructive"
+      });
+      
+      navigate('/results', { 
+        state: { 
+          matchData: {
+            ...fallbackData,
+            isSampleData: true,
+            actualMajor: actualMajor,
+            originalProfile: formData
+          }
+        } 
+      });
     } finally {
       setIsGeneratingMatches(false);
     }

@@ -9,6 +9,7 @@ import { ArrowRight, ArrowLeft } from "lucide-react";
 
 interface QuestionnaireData {
   major: string;
+  customMajor?: string;
   gpa: string;
   preferredLocation: string[];
   budget: string;
@@ -29,6 +30,7 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<QuestionnaireData>({
     major: "",
+    customMajor: "",
     gpa: "",
     preferredLocation: [],
     budget: "",
@@ -49,6 +51,11 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
       // Validate required fields
       if (!formData.major || !formData.gpa || !formData.enrollmentType) {
         alert("Please complete all required fields: Major, GPA, and Enrollment Type");
+        return;
+      }
+      
+      if (formData.major === "other" && !formData.customMajor?.trim()) {
+        alert("Please specify your custom major");
         return;
       }
       onSubmit(formData);
@@ -116,6 +123,19 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                {formData.major === "other" && (
+                  <div className="mt-3">
+                    <Label htmlFor="customMajor">Please specify your major *</Label>
+                    <Input
+                      id="customMajor"
+                      value={formData.customMajor || ""}
+                      onChange={(e) => setFormData(prev => ({ ...prev, customMajor: e.target.value }))}
+                      placeholder="Enter your intended major or program of study"
+                      className="mt-1"
+                    />
+                  </div>
+                )}
               </div>
               
               <div>

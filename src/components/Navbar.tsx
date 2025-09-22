@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Menu, User, LogOut, BookOpen, GraduationCap, Plane, Home as HomeIcon, Users, Heart, FileCheck, Bot, Globe, MessageCircle, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -66,6 +66,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     try {
@@ -132,7 +133,7 @@ const Navbar = () => {
             <Link to="/community" className="text-muted-foreground hover:text-foreground transition-smooth">
               Community
             </Link>
-            <Link to="/saved-results" className="text-muted-foreground hover:text-foreground transition-smooth">
+            <Link to="/saved-results" className={`text-muted-foreground hover:text-foreground transition-smooth ${location.pathname === '/profile/saved' ? 'text-foreground font-medium' : ''}`}>
               My Results
             </Link>
           </div>
@@ -200,8 +201,8 @@ const Navbar = () => {
                 <span>Community</span>
               </Link>
               <Link
-                to="/saved-results"
-                className="flex items-center space-x-2 px-4 py-2 text-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors"
+                to="/profile/saved"
+                className={`flex items-center space-x-2 px-4 py-2 text-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors ${location.pathname === '/profile/saved' ? 'bg-muted/50 text-primary' : ''}`}
                 onClick={() => setIsOpen(false)}
               >
                 <User className="h-4 w-4" />
