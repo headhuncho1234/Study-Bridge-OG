@@ -247,17 +247,18 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
             </div>
             
             <div className="space-y-4">
-              <div>
-                <Label>Demographic Information (optional - helps with scholarship matching)</Label>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  {[
-                    "First-generation college student",
-                    "Low-income background",
-                    "Veteran or military family",
-                    "Underrepresented minority",
-                    "International student",
-                    "Student with disabilities"
-                  ].map((demo) => (
+                <div>
+                  <Label>Demographic Information (optional - helps with scholarship matching)</Label>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    {[
+                      "First-generation college student",
+                      "Low-income background",
+                      "Veteran or military family",
+                      "Underrepresented minority",
+                      "International student",
+                      "Student with disabilities",
+                      "Community volunteer/service"
+                    ].map((demo) => (
                     <div key={demo} className="flex items-center space-x-2">
                       <Checkbox 
                         id={demo}

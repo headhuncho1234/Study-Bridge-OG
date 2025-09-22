@@ -1,213 +1,243 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Eye, 
-  Trash2, 
-  Share, 
-  Home,
-  Calendar,
-  GraduationCap
-} from "lucide-react";
-import { getSavedResults, deleteResult, SavedResult } from "@/hooks/useLocalStorage";
 import { useToast } from "@/hooks/use-toast";
-import CreatePostModal from "@/components/community/CreatePostModal";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Download, Eye, Trash2, BookOpen, DollarSign, MapPin } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import AuthModal from "@/components/auth/AuthModal";
+
+interface SavedResult {
+  id: string;
+  title: string;
+  date: string;
+  data: any;
+}
 
 const SavedResults = () => {
-  const navigate = useNavigate();
+  const [savedResults, setSavedResults] = useState<SavedResult[]>([]);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { toast } = useToast();
-  const [savedResults, setSavedResults] = useState<SavedResult[]>(getSavedResults());
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [selectedResult, setSelectedResult] = useState<SavedResult | null>(null);
+  const { user } = useAuth();
 
-  const handleViewResult = (result: SavedResult) => {
-    navigate('/results', { state: { matchData: result.data } });
+  useEffect(() => {
+    if (user) {
+      loadSavedResults();
+    } else {
+      setIsAuthModalOpen(true);
+    }
+  }, [user]);
+
+  const loadSavedResults = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('saved_results')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedResults = data?.map(result => ({
+        id: result.id,
+        title: result.title,
+        date: new Date(result.created_at).toLocaleDateString(),
+        data: result.data
+      })) || [];
+
+      setSavedResults(formattedResults);
+    } catch (error) {
+      console.error('Error loading saved results:', error);
+      toast({
+        title: "Error loading results",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteResult = (id: string) => {
-    deleteResult(id);
-    setSavedResults(getSavedResults());
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('saved_results')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setSavedResults(prev => prev.filter(result => result.id !== id));
+      
+      toast({
+        title: "Result deleted",
+        description: "The saved result has been removed.",
+      });
+    } catch (error) {
+      console.error('Error deleting result:', error);
+      toast({
+        title: "Error deleting result",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleView = (result: SavedResult) => {
+    // Navigate to results page with the saved data
+    window.location.href = `/results?data=${encodeURIComponent(JSON.stringify(result.data))}`;
+  };
+
+  const handleExport = (result: SavedResult) => {
+    // Simple PDF export - create a downloadable file
+    const dataStr = JSON.stringify(result.data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${result.title.replace(/\s+/g, '_')}_results.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
     toast({
-      title: "Result Deleted",
-      description: "Your saved result has been removed.",
+      title: "Results exported",
+      description: "Your results have been downloaded.",
     });
   };
 
-  const handleShareToCommunity = (result: SavedResult) => {
-    setSelectedResult(result);
-    setIsShareModalOpen(true);
-  };
-
-  const handleShareSubmit = (postData: { title: string; content: string }) => {
-    // This would normally save to community posts
-    // For now, just show success toast
-    toast({
-      title: "Shared to Community",
-      description: "Your results have been shared with the community!",
-    });
-    setIsShareModalOpen(false);
-    setSelectedResult(null);
-  };
-
-  const formatShareContent = (result: SavedResult) => {
-    if (!result.data.matches) return '';
-    
-    const topMatches = result.data.matches.slice(0, 3);
-    let content = `<h3>My University Match Results</h3>`;
-    content += `<p>Just got my personalized university recommendations! Here are my top matches:</p>`;
-    content += `<ol>`;
-    
-    topMatches.forEach((match: any) => {
-      content += `<li><strong>${match.name}</strong> (${match.city}, ${match.state}) - ${match.match_score}% match</li>`;
-    });
-    
-    content += `</ol>`;
-    content += `<p>The AI analysis considered my academic background, preferences, and financial situation. Pretty impressed with these recommendations!</p>`;
-    content += `<p>Has anyone else used this tool? Would love to hear about your experiences!</p>`;
-    
-    return content;
-  };
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <Navbar />
+        <div className="container mx-auto px-4 py-24">
+          <AuthModal 
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="container mx-auto px-4 py-8">
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-24">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4 mb-8">
           <Link to="/">
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Home className="h-4 w-4" />
+            <Button variant="outline" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
               Back to Home
             </Button>
           </Link>
-          
-          <div className="text-center">
+          <div>
             <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               Saved Results
             </h1>
             <p className="text-muted-foreground">
-              Your previously saved university match results
+              Your personalized university recommendations and matches
             </p>
           </div>
-          
-          <div></div> {/* Spacer for flexbox */}
         </div>
 
         {/* Results Grid */}
-        {savedResults.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <GraduationCap className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">No Saved Results</h3>
-              <p className="text-muted-foreground mb-4">
-                Complete a questionnaire to get personalized university matches
-              </p>
-              <Button onClick={() => navigate('/')}>
-                Start Questionnaire
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
+        {savedResults.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {savedResults.map((result) => (
-              <Card key={result.id} className="shadow-card hover:shadow-elegant transition-shadow duration-300">
+              <Card key={result.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg line-clamp-2">
-                        {result.title}
-                      </CardTitle>
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(result.timestamp).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
+                  <CardTitle className="text-lg">{result.title}</CardTitle>
+                  <p className="text-sm text-muted-foreground">Saved on {result.date}</p>
                 </CardHeader>
                 
                 <CardContent>
-                  <div className="space-y-3">
-                    {/* Result Summary */}
-                    {result.data.matches && (
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {result.data.matches.length} university matches found
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {result.data.matches.slice(0, 2).map((match: any, index: number) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {match.name}
-                            </Badge>
-                          ))}
-                          {result.data.matches.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{result.data.matches.length - 2} more
-                            </Badge>
-                          )}
-                        </div>
+                  <div className="space-y-3 mb-4">
+                    {result.data?.universities && (
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-primary" />
+                        <span className="text-sm">
+                          {result.data.universities.length} Universities
+                        </span>
                       </div>
                     )}
                     
-                    {/* Profile Summary */}
-                    {result.data.profile_summary && (
-                      <div className="text-xs text-muted-foreground">
-                        <p>Major: {result.data.profile_summary.major}</p>
-                        <p>GPA: {result.data.profile_summary.GPA}</p>
+                    {result.data?.scholarships && (
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-secondary" />
+                        <span className="text-sm">
+                          {result.data.scholarships.length} Scholarships
+                        </span>
                       </div>
                     )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 pt-4">
-                      <Button
-                        size="sm"
-                        onClick={() => handleViewResult(result)}
-                        className="flex-1"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleShareToCommunity(result)}
-                      >
-                        <Share className="h-3 w-3" />
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteResult(result.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    
+                    {result.data?.preferences?.budget && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-accent" />
+                        <Badge variant="outline" className="text-xs">
+                          {result.data.preferences.budget}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleView(result)}
+                      className="flex-1"
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      View
+                    </Button>
+                    
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleExport(result)}
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      Export
+                    </Button>
+                    
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => handleDelete(result.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
+        ) : (
+          <Card className="text-center py-12">
+            <CardContent>
+              <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-semibold mb-2">No saved results yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Complete the questionnaire to get personalized university recommendations that you can save.
+              </p>
+              <Link to="/#intake">
+                <Button>
+                  Get Started
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         )}
       </div>
-
-      {/* Share Modal */}
-      <CreatePostModal
-        isOpen={isShareModalOpen}
-        onClose={() => {
-          setIsShareModalOpen(false);
-          setSelectedResult(null);
-        }}
-        onSubmit={handleShareSubmit}
-        prefillData={selectedResult ? {
-          title: `My University Match Results - ${new Date().toLocaleDateString()}`,
-          content: formatShareContent(selectedResult)
-        } : undefined}
-      />
     </div>
   );
 };

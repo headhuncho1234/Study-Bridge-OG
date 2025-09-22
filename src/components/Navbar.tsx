@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Globe, MessageCircle, Users, GraduationCap } from "lucide-react";
+import { Menu, X, Globe, MessageCircle, Users, GraduationCap, User, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import AuthModal from "@/components/auth/AuthModal";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const navItems = [
     { name: "Features", href: "#features", icon: Globe },
@@ -54,14 +58,31 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* CTA Button */}
-          <div className="hidden md:block">
-            <Button 
-              className="bg-primary hover:bg-primary-dark text-primary-foreground shadow-card transition-smooth"
-              onClick={() => document.getElementById('intake')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Start Your Journey
-            </Button>
+          {/* Auth Section */}
+          <div className="hidden md:flex items-center gap-3">
+            {user ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="h-4 w-4" />
+                  <span>Welcome, {user.email?.split('@')[0]}</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={signOut}
+                  className="text-foreground hover:text-primary"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                className="bg-primary hover:bg-primary-dark text-primary-foreground shadow-card transition-smooth"
+                onClick={() => setIsAuthOpen(true)}
+              >
+                Sign In
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -104,20 +125,45 @@ const Navbar = () => {
                 )
               ))}
               <div className="px-4 pt-2">
-                <Button 
-                  className="w-full bg-primary hover:bg-primary-dark text-primary-foreground"
-                  onClick={() => {
-                    setIsOpen(false);
-                    document.getElementById('intake')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  Start Your Journey
-                </Button>
+                {user ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-4 py-2 text-sm">
+                      <User className="h-4 w-4" />
+                      <span>Welcome, {user.email?.split('@')[0]}</span>
+                    </div>
+                    <Button 
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setIsOpen(false);
+                        signOut();
+                      }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary-dark text-primary-foreground"
+                    onClick={() => {
+                      setIsOpen(false);
+                      setIsAuthOpen(true);
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
+
+      <AuthModal 
+        isOpen={isAuthOpen} 
+        onClose={() => setIsAuthOpen(false)} 
+      />
     </nav>
   );
 };

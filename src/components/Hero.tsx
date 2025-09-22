@@ -39,6 +39,7 @@ const Hero = () => {
               size="lg" 
               variant="outline" 
               className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm text-lg px-8 py-6 rounded-xl font-semibold transition-smooth"
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
             >
               <Globe className="mr-2 h-5 w-5" />
               Explore Features
