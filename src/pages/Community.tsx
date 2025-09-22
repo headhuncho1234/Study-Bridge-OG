@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Heart, MessageCircle, Share2, Upload, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Plus, Heart, MessageCircle, Share2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+
+// Using default import for CreatePostModal
 import CreatePostModal from "@/components/community/CreatePostModal";
+
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AuthModal from "@/components/auth/AuthModal";
@@ -28,11 +30,13 @@ interface Post {
 }
 
 const Community = () => {
+  // State declarations
   const [posts, setPosts] = useState<Post[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -58,7 +62,7 @@ const Community = () => {
         date: new Date(post.created_at).toLocaleDateString(),
         likes: post.likes_count || 0,
         comments: post.comments_count || 0,
-        tags: [], // We can add tags later if needed
+        tags: [],
         images: post.images || []
       })) || [];
 
@@ -121,7 +125,6 @@ const Community = () => {
         description: "Your post has been shared with the community.",
       });
 
-      // Reload posts to get the new one
       loadPosts();
     } catch (error) {
       console.error('Error creating post:', error);
