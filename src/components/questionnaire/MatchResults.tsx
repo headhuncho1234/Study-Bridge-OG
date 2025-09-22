@@ -172,14 +172,46 @@ const MatchResults = ({ data, onStartNew }: MatchResultsProps) => {
           {showTop5Only ? "Show All Matches" : "Show Top 5"}
         </Button>
         
-        <Button variant="outline" size="sm" className="ml-auto">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="ml-auto"
+          onClick={async () => {
+            const jsPDF = (await import('jspdf')).default;
+            const html2canvas = (await import('html2canvas')).default;
+            
+            const element = document.getElementById('results-content');
+            if (element) {
+              const canvas = await html2canvas(element);
+              const imgData = canvas.toDataURL('image/png');
+              const pdf = new jsPDF();
+              const imgWidth = 210;
+              const pageHeight = 295;
+              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+              let heightLeft = imgHeight;
+              let position = 0;
+
+              pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+
+              while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+              }
+
+              pdf.save(`university-matches-${new Date().toISOString().split('T')[0]}.pdf`);
+            }
+          }}
+        >
           <Download className="h-4 w-4 mr-2" />
           Export PDF
         </Button>
       </div>
 
       {/* Matches */}
-      <div className="space-y-4">
+      <div id="results-content" className="space-y-4">
         {displayMatches.map((match, index) => (
           <Card key={index} className="shadow-card hover:shadow-elegant transition-shadow duration-300">
             <CardHeader>

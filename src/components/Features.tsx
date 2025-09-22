@@ -76,32 +76,58 @@ const Features = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, index) => (
-            <Card 
-              key={index} 
-              className="group hover:shadow-elegant transition-all duration-300 hover:-translate-y-2 border-border/50 bg-gradient-card backdrop-blur-sm"
-            >
-              <CardContent className="p-6">
-                <div className="mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {feature.icon}
-                </div>
-                <h3 className="text-lg font-semibold mb-3 text-foreground">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                  {feature.description}
-                </p>
-                <div className="space-y-2">
-                  {feature.benefits.map((benefit, idx) => (
-                    <div key={idx} className="flex items-center text-xs text-muted-foreground">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></div>
-                      {benefit}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {features.map((feature, index) => {
+            const getFeatureLink = (title: string) => {
+              switch (title) {
+                case "Smart School Matching":
+                  return "/features/smart-matching";
+                case "Scholarship Database":
+                  return "/features/scholarship-database";
+                case "Visa Guidance":
+                  return "/features/visa-guidance";
+                case "Housing Solutions":
+                  return "/features/housing-solutions";
+                case "Student Community":
+                  return "/features/student-community";
+                case "Wellness Support":
+                  return "/features/wellness-support";
+                case "Document Tracker":
+                  return "/features/document-tracker";
+                case "24/7 AI Assistant":
+                  return "/features/ai-assistant";
+                default:
+                  return "#";
+              }
+            };
+
+            return (
+              <Card 
+                key={index} 
+                className="group hover:shadow-elegant transition-all duration-300 hover:-translate-y-2 border-border/50 bg-gradient-card backdrop-blur-sm cursor-pointer"
+                onClick={() => window.location.href = getFeatureLink(feature.title)}
+              >
+                <CardContent className="p-6">
+                  <div className="mb-4 group-hover:scale-110 transition-transform duration-300">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-lg font-semibold mb-3 text-foreground">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                    {feature.description}
+                  </p>
+                  <div className="space-y-2">
+                    {feature.benefits.map((benefit, idx) => (
+                      <div key={idx} className="flex items-center text-xs text-muted-foreground">
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></div>
+                        {benefit}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <div className="mt-16 text-center">
