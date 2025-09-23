@@ -33,7 +33,32 @@ serve(async (req) => {
     const isStructuredMatching = message.includes('questionnaire data') || message.includes('JSON') || message.includes('matches') || message.includes('scholarship') || message.includes('housing') || message.includes('visa');
     
     const systemPrompt = isStructuredMatching 
-      ? 'You are StudyBridge AI, a specialized assistant for international students studying in the U.S. You generate comprehensive JSON responses for matching requests. CRITICAL: Always return exactly the minimum requested number of results (5+ universities, 5+ scholarships, 5+ housing options). Include accurate U.S. rankings, tuition costs, acceptance rates, and detailed information. Ensure all JSON is valid and matches the requested schema exactly. Focus only on legitimate U.S. institutions and real opportunities.'
+      ? `You are StudyBridge AI, a specialized assistant for international students studying in the U.S. You generate comprehensive JSON responses for matching requests.
+
+For UNIVERSITY matches, ALWAYS use this exact JSON format with all required fields:
+{
+  "profile": "Brief summary of the student's academic profile and preferences",
+  "matches": [
+    {
+      "name": "University Name",
+      "location": "City, State",
+      "match_score": 85,
+      "tuition": "$45,000/year (out-of-state)",
+      "acceptance_rate": "65%",
+      "ranking": "#50 Public Universities (U.S. News 2024)",
+      "programs": ["Computer Science", "Engineering", "Business"],
+      "campus_size": "25,000 students",
+      "student_body": 25000,
+      "description": "Brief description of what makes this university special",
+      "application_deadline": "January 15, 2024",
+      "requirements": ["SAT: 1200+", "GPA: 3.5+", "Essays required"],
+      "website": "https://www.university.edu",
+      "personalized_summary": "This university is perfect for you because it offers strong programs in your chosen field with excellent research opportunities and matches your preference for a large campus environment."
+    }
+  ]
+}
+
+CRITICAL: Always return exactly 5-7 university matches. Include accurate U.S. News public university rankings, realistic tuition costs, acceptance rates, student body numbers, working .edu website URLs, and personalized summaries explaining why each school matches the student's specific preferences. Focus only on legitimate U.S. institutions.`
       : 'You are StudyBridge, a friendly and knowledgeable AI assistant for international students. Help with questions about studying in the U.S., including applications, scholarships, visas, housing, student life, and general guidance. Be helpful, encouraging, and provide practical advice. Keep responses conversational and supportive.';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

@@ -12,9 +12,12 @@ interface UniversityMatch {
   ranking?: string;
   programs: string[];
   campus_size: string;
+  student_body?: number;
   description: string;
   application_deadline: string;
   requirements: string[];
+  website?: string;
+  personalized_summary?: string;
 }
 
 interface ScholarshipMatch {
@@ -91,14 +94,34 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
           <Card key={index} className="hover:shadow-card transition-all duration-300">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
-                <CardTitle className="text-lg font-semibold">{university.name}</CardTitle>
+                <div className="flex-1">
+                  <CardTitle className="text-lg font-semibold">
+                    {university.website ? (
+                      <a 
+                        href={university.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {university.name}
+                      </a>
+                    ) : (
+                      university.name
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-2 text-muted-foreground mt-1">
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-sm">{university.location}</span>
+                  </div>
+                  {university.ranking && (
+                    <div className="text-sm font-medium text-accent mt-1">
+                      {university.ranking}
+                    </div>
+                  )}
+                </div>
                 <Badge variant="secondary" className="ml-2">
                   {university.match_score}% Match
                 </Badge>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span className="text-sm">{university.location}</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -111,25 +134,43 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                   <span className="text-muted-foreground">Acceptance Rate:</span>
                   <div className="font-medium">{university.acceptance_rate}</div>
                 </div>
-                {university.ranking && (
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Ranking:</span>
-                    <div className="font-medium">{university.ranking}</div>
+                <div>
+                  <span className="text-muted-foreground">Campus Size:</span>
+                  <div className="font-medium">{university.campus_size}</div>
+                </div>
+                {university.student_body && (
+                  <div>
+                    <span className="text-muted-foreground">Student Body:</span>
+                    <div className="font-medium">{university.student_body.toLocaleString()} students</div>
                   </div>
                 )}
               </div>
-              <div>
-                <span className="text-muted-foreground text-sm">Campus Size:</span>
-                <div className="text-sm">{university.campus_size}</div>
-              </div>
+              
+              {university.personalized_summary && (
+                <div className="bg-primary/10 p-3 rounded-md">
+                  <div className="text-sm font-medium text-primary mb-1">Why This School Matches You:</div>
+                  <p className="text-sm text-muted-foreground">{university.personalized_summary}</p>
+                </div>
+              )}
+              
               <p className="text-sm text-muted-foreground">{university.description}</p>
-              <div className="flex flex-wrap gap-1 mt-2">
+              
+              <div className="flex flex-wrap gap-1">
                 {university.programs?.slice(0, 3).map((program, idx) => (
                   <Badge key={idx} variant="outline" className="text-xs">
                     {program}
                   </Badge>
                 ))}
               </div>
+              
+              {university.website && (
+                <Button asChild className="w-full" variant="outline">
+                  <a href={university.website} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Visit University Website
+                  </a>
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
