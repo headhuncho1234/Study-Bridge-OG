@@ -95,9 +95,11 @@ const VisaGuidance = () => {
               </div>
             </div>
             
-            <Button variant="secondary" size="lg" className="mt-4">
-              Start Visa Preparation
-            </Button>
+            <Link to="/questionnaires/visa">
+              <Button variant="secondary" size="lg" className="mt-4">
+                Start Visa Preparation
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -240,9 +242,11 @@ const VisaGuidance = () => {
               Join thousands of students who have successfully obtained their U.S. student visa 
               with our comprehensive guidance system.
             </p>
-            <Button size="lg" className="mr-4">
-              Start Visa Preparation
-            </Button>
+            <Link to="/questionnaires/visa">
+              <Button size="lg" className="mr-4">
+                Start Visa Preparation
+              </Button>
+            </Link>
             <Link to="/community">
               <Button variant="outline" size="lg">
                 Read Success Stories

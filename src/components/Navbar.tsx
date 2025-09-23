@@ -133,7 +133,7 @@ const Navbar = () => {
             <Link to="/community" className="text-muted-foreground hover:text-foreground transition-smooth">
               Community
             </Link>
-            <Link to="/saved-results" className={`text-muted-foreground hover:text-foreground transition-smooth ${location.pathname === '/profile/saved' ? 'text-foreground font-medium' : ''}`}>
+            <Link to="/profile/saved" className={`text-muted-foreground hover:text-foreground transition-smooth ${location.pathname === '/profile/saved' ? 'text-foreground font-medium' : ''}`}>
               My Results
             </Link>
           </div>

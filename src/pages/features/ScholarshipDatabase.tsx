@@ -82,7 +82,7 @@ const ScholarshipDatabase = () => {
               </div>
             </div>
             
-            <Link to="/#intake">
+            <Link to="/questionnaires/scholarships">
               <Button variant="secondary" size="lg" className="mt-4">
                 Find My Scholarships
               </Button>
@@ -210,7 +210,7 @@ const ScholarshipDatabase = () => {
               Don't let financial barriers stop your educational dreams. Our AI will help you find 
               scholarships you qualify for and guide you through the application process.
             </p>
-            <Link to="/#intake">
+            <Link to="/questionnaires/scholarships">
               <Button size="lg" className="mr-4">
                 Find My Scholarships
               </Button>

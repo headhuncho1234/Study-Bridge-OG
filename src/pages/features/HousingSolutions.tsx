@@ -116,9 +116,11 @@ const HousingSolutions = () => {
               </div>
             </div>
             
-            <Button variant="secondary" size="lg" className="mt-4">
-              Start Housing Search
-            </Button>
+            <Link to="/questionnaires/housing">
+              <Button variant="secondary" size="lg" className="mt-4">
+                Start Housing Search
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -256,12 +258,14 @@ const HousingSolutions = () => {
               Start your housing search today and join thousands of international students 
               who have found their ideal accommodation through our platform.
             </p>
-            <Button size="lg" className="mr-4">
-              Start Housing Search
-            </Button>
+            <Link to="/questionnaires/housing">
+              <Button size="lg" className="mr-4">
+                Start Housing Search
+              </Button>
+            </Link>
             <Link to="/community">
               <Button variant="outline" size="lg">
-                Read Housing Reviews
+                Housing Reviews
               </Button>
             </Link>
           </CardContent>

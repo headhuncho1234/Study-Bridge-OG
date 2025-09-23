@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Results from "./pages/Results";
 import Community from "./pages/Community";
 import SavedResults from "./pages/SavedResults";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import SmartMatching from "./pages/features/SmartMatching";
 import ScholarshipDatabase from "./pages/features/ScholarshipDatabase";
@@ -16,6 +17,9 @@ import StudentCommunity from "./pages/features/StudentCommunity";
 import WellnessSupport from "./pages/features/WellnessSupport";
 import DocumentTracker from "./pages/features/DocumentTracker";
 import AIAssistant from "./pages/features/AIAssistant";
+import HousingQuestionnairePage from "./pages/questionnaires/HousingQuestionnairePage";
+import VisaQuestionnairePage from "./pages/questionnaires/VisaQuestionnairePage";
+import ScholarshipQuestionnairePage from "./pages/questionnaires/ScholarshipQuestionnairePage";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +34,7 @@ const App = () => (
           <Route path="/results" element={<Results />} />
           <Route path="/community" element={<Community />} />
           <Route path="/profile/saved" element={<SavedResults />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/features/smart-matching" element={<SmartMatching />} />
           <Route path="/features/scholarship-database" element={<ScholarshipDatabase />} />
           <Route path="/features/visa-guidance" element={<VisaGuidance />} />
@@ -38,6 +43,9 @@ const App = () => (
           <Route path="/features/wellness-support" element={<WellnessSupport />} />
           <Route path="/features/document-tracker" element={<DocumentTracker />} />
           <Route path="/features/ai-assistant" element={<AIAssistant />} />
+          <Route path="/questionnaires/housing" element={<HousingQuestionnairePage />} />
+          <Route path="/questionnaires/visa" element={<VisaQuestionnairePage />} />
+          <Route path="/questionnaires/scholarships" element={<ScholarshipQuestionnairePage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
