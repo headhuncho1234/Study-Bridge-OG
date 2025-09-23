@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Home } from "lucide-react";
-import MatchResults, { MatchData } from "@/components/questionnaire/MatchResults";
+import ResultsDisplay from "@/components/questionnaire/ResultsDisplay";
 import { saveResult } from "@/hooks/useLocalStorage";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,7 @@ const Results = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [matchData, setMatchData] = useState<MatchData | null>(null);
+  const [matchData, setMatchData] = useState<any | null>(null);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -47,7 +47,14 @@ const Results = () => {
     const autoSaveResults = async () => {
       if (user && matchData && location.state?.matchData) {
         // Only auto-save if this is fresh data from questionnaire (not loaded from saved results)
-        const title = `University Matches - ${new Date().toLocaleDateString()}`;
+        const source = location.state?.source || 'questionnaire';
+        const title = source === 'scholarship-questionnaire' 
+          ? `Scholarship Matches - ${new Date().toLocaleDateString()}`
+          : source === 'housing-questionnaire' 
+          ? `Housing Matches - ${new Date().toLocaleDateString()}`
+          : source === 'visa-questionnaire'
+          ? `Visa Guidance - ${new Date().toLocaleDateString()}`
+          : `University Matches - ${new Date().toLocaleDateString()}`;
         
         try {
           const { error } = await supabase
@@ -76,7 +83,14 @@ const Results = () => {
   const handleSaveResults = async () => {
     if (!matchData) return;
 
-    const title = `University Matches - ${new Date().toLocaleDateString()}`;
+    const source = location.state?.source || 'questionnaire';
+    const title = source === 'scholarship-questionnaire' 
+      ? `Scholarship Matches - ${new Date().toLocaleDateString()}`
+      : source === 'housing-questionnaire' 
+      ? `Housing Matches - ${new Date().toLocaleDateString()}`
+      : source === 'visa-questionnaire'
+      ? `Visa Guidance - ${new Date().toLocaleDateString()}`
+      : `University Matches - ${new Date().toLocaleDateString()}`;
     
     if (user) {
       try {
@@ -164,7 +178,7 @@ const Results = () => {
         </div>
 
         {/* Results */}
-        <MatchResults data={matchData} onStartNew={handleStartNew} />
+        <ResultsDisplay data={matchData} source={location.state?.source} />
       </div>
     </div>
   );

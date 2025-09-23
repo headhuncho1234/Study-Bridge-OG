@@ -29,11 +29,11 @@ serve(async (req) => {
 
     console.log('Received message for chat, length:', message.length);
 
-    // Check if this is a university matching request (contains schema/JSON instructions)
-    const isUniversityMatching = message.includes('questionnaire data') || message.includes('JSON') || message.includes('matches');
+    // Check if this is a structured matching request (contains schema/JSON instructions)
+    const isStructuredMatching = message.includes('questionnaire data') || message.includes('JSON') || message.includes('matches') || message.includes('scholarship') || message.includes('housing') || message.includes('visa');
     
-    const systemPrompt = isUniversityMatching 
-      ? 'You are a university matching AI assistant for U.S. students called StudyBridge. You generate JSON responses for university matching. Always return valid JSON matching the requested schema. Focus only on U.S. universities and colleges. Be accurate and helpful with university recommendations based on student profiles.'
+    const systemPrompt = isStructuredMatching 
+      ? 'You are StudyBridge AI, a specialized assistant for international students studying in the U.S. You generate comprehensive JSON responses for matching requests. CRITICAL: Always return exactly the minimum requested number of results (5+ universities, 5+ scholarships, 5+ housing options). Include accurate U.S. rankings, tuition costs, acceptance rates, and detailed information. Ensure all JSON is valid and matches the requested schema exactly. Focus only on legitimate U.S. institutions and real opportunities.'
       : 'You are StudyBridge, a friendly and knowledgeable AI assistant for international students. Help with questions about studying in the U.S., including applications, scholarships, visas, housing, student life, and general guidance. Be helpful, encouraging, and provide practical advice. Keep responses conversational and supportive.';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -51,8 +51,8 @@ serve(async (req) => {
           },
           { role: 'user', content: message }
         ],
-        max_tokens: 2000,
-        temperature: 0.3,
+        max_tokens: 4000,
+        temperature: 0.2,
       }),
     });
 
@@ -72,8 +72,8 @@ serve(async (req) => {
     const aiResponse = data.choices[0].message.content;
     console.log('AI response generated successfully, length:', aiResponse.length);
 
-    // Only validate JSON for university matching requests
-    if (isUniversityMatching) {
+    // Only validate JSON for structured matching requests
+    if (isStructuredMatching) {
       try {
         const jsonStart = aiResponse.indexOf('{');
         const jsonEnd = aiResponse.lastIndexOf('}') + 1;
@@ -85,12 +85,18 @@ serve(async (req) => {
         const jsonString = aiResponse.substring(jsonStart, jsonEnd);
         const parsedJson = JSON.parse(jsonString);
         
-        // Validate required fields
-        if (!parsedJson.matches || !Array.isArray(parsedJson.matches)) {
-          throw new Error('Invalid JSON structure: missing matches array');
+        // Validate required fields for different result types
+        if (parsedJson.matches && Array.isArray(parsedJson.matches)) {
+          console.log('University matches validation successful:', parsedJson.matches.length);
+        } else if (parsedJson.scholarships && Array.isArray(parsedJson.scholarships)) {
+          console.log('Scholarship matches validation successful:', parsedJson.scholarships.length);
+        } else if (parsedJson.housing_options && Array.isArray(parsedJson.housing_options)) {
+          console.log('Housing options validation successful:', parsedJson.housing_options.length);
+        } else if (parsedJson.profile || parsedJson.roadmap) {
+          console.log('Visa guidance validation successful');
+        } else {
+          throw new Error('Invalid JSON structure: missing expected data arrays or objects');
         }
-        
-        console.log('JSON validation successful, matches found:', parsedJson.matches.length);
       } catch (jsonError) {
         console.error('JSON validation error:', jsonError);
         throw new Error(`Invalid JSON response: ${jsonError.message}`);
