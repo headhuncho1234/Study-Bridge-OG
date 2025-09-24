@@ -1,7 +1,35 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, DollarSign, Clock, Users, ExternalLink, Home, Award, FileText } from "lucide-react";
+import { Star, MapPin, DollarSign, Clock, Users, ExternalLink, Home, Award, FileText, Info } from "lucide-react";
+import SchoolDetailModal from "./SchoolDetailModal";
+
+interface DetailedInfo {
+  campus_life: string;
+  research_opportunities: string;
+  career_services: string;
+  notable_alumni: string[];
+  student_faculty_ratio: string;
+  retention_rate: string;
+  graduation_rate: string;
+  facilities: string[];
+}
+
+interface SchoolScholarship {
+  name: string;
+  amount: string;
+  eligibility: string;
+  deadline: string;
+  renewable: boolean;
+  application_link: string;
+}
+
+interface SchoolScholarships {
+  merit_scholarships: SchoolScholarship[];
+  need_based: SchoolScholarship[];
+  program_specific: SchoolScholarship[];
+}
 
 interface UniversityMatch {
   name: string;
@@ -18,6 +46,8 @@ interface UniversityMatch {
   requirements: string[];
   website?: string;
   personalized_summary?: string;
+  detailed_info?: DetailedInfo;
+  school_scholarships?: SchoolScholarships;
 }
 
 interface ScholarshipMatch {
@@ -87,27 +117,24 @@ interface ResultsDisplayProps {
 }
 
 const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
+  const [selectedSchool, setSelectedSchool] = useState<UniversityMatch | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleSchoolClick = (university: UniversityMatch) => {
+    setSelectedSchool(university);
+    setIsModalOpen(true);
+  };
+
   const renderUniversityResults = (results: UniversityResults) => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {results.matches?.map((university, index) => (
-          <Card key={index} className="hover:shadow-card transition-all duration-300">
+          <Card key={index} className="hover:shadow-card transition-all duration-300 cursor-pointer" onClick={() => handleSchoolClick(university)}>
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <CardTitle className="text-lg font-semibold">
-                    {university.website ? (
-                      <a 
-                        href={university.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {university.name}
-                      </a>
-                    ) : (
-                      university.name
-                    )}
+                  <CardTitle className="text-lg font-semibold text-primary hover:underline">
+                    {university.name}
                   </CardTitle>
                   <div className="flex items-center gap-2 text-muted-foreground mt-1">
                     <MapPin className="h-4 w-4" />
@@ -163,18 +190,20 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                 ))}
               </div>
               
-              {university.website && (
-                <Button asChild className="w-full" variant="outline">
-                  <a href={university.website} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Visit University Website
-                  </a>
-                </Button>
-              )}
+              <Button className="w-full" variant="outline">
+                <Info className="h-4 w-4 mr-2" />
+                View Details & Scholarships
+              </Button>
             </CardContent>
           </Card>
         ))}
       </div>
+      
+      <SchoolDetailModal 
+        school={selectedSchool}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 
