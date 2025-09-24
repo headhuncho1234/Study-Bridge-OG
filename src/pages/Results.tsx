@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Home } from "lucide-react";
 import ResultsDisplay from "@/components/questionnaire/ResultsDisplay";
+import HousingFilters from "@/components/housing/HousingFilters";
 import { saveResult } from "@/hooks/useLocalStorage";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,11 @@ const Results = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [matchData, setMatchData] = useState<any | null>(null);
+  const [filteredResults, setFilteredResults] = useState<any | null>(null);
   const [user, setUser] = useState(null);
+
+  const source = location.state?.source;
+  const isHousingResults = source?.includes('housing');
 
   useEffect(() => {
     // Check auth state
@@ -23,6 +28,7 @@ const Results = () => {
     // Get match data from navigation state or URL params
     if (location.state?.matchData) {
       setMatchData(location.state.matchData);
+      setFilteredResults(location.state.matchData);
     } else {
       // Check for data in URL params (from saved results)
       const urlParams = new URLSearchParams(location.search);
@@ -31,6 +37,7 @@ const Results = () => {
         try {
           const parsedData = JSON.parse(decodeURIComponent(dataParam));
           setMatchData(parsedData);
+          setFilteredResults(parsedData);
         } catch (error) {
           console.error('Error parsing URL data:', error);
           navigate('/');
@@ -41,6 +48,82 @@ const Results = () => {
       }
     }
   }, [location.state, location.search, navigate]);
+
+  const handleFiltersChange = (filters: any) => {
+    if (!isHousingResults || !matchData?.recommendations) {
+      return;
+    }
+
+    let filtered = [...matchData.recommendations];
+
+    // Filter by price range
+    if (filters.priceRange) {
+      filtered = filtered.filter((housing: any) => {
+        const rent = parseInt(housing.rent.replace(/[^\d]/g, ''));
+        return rent >= filters.priceRange[0] && rent <= filters.priceRange[1];
+      });
+    }
+
+    // Filter by housing types
+    if (filters.housingTypes?.length > 0) {
+      filtered = filtered.filter((housing: any) => 
+        filters.housingTypes.some((type: string) => 
+          housing.type.toLowerCase().includes(type.toLowerCase())
+        )
+      );
+    }
+
+    // Filter by amenities
+    if (filters.amenities?.length > 0) {
+      filtered = filtered.filter((housing: any) => 
+        filters.amenities.some((amenity: string) => 
+          housing.amenities.some((a: string) => 
+            a.toLowerCase().includes(amenity.toLowerCase())
+          )
+        )
+      );
+    }
+
+    // Filter by guarantor status (for international students)
+    if (filters.guarantorStatus && filters.guarantorStatus !== 'all') {
+      filtered = filtered.filter((housing: any) => {
+        switch (filters.guarantorStatus) {
+          case 'no-guarantor':
+            return housing.type === 'Dormitory' || housing.type === 'On-Campus';
+          case 'guarantor-services':
+            return housing.type === 'Homestay' || housing.type === 'Student Apartment';
+          case 'traditional':
+            return housing.type === 'Apartment' || housing.type === 'Shared House';
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Filter by distance
+    if (filters.distance && filters.distance !== 'all') {
+      filtered = filtered.filter((housing: any) => {
+        const distance = housing.distance.toLowerCase();
+        switch (filters.distance) {
+          case 'walking':
+            return distance.includes('0.') || distance.includes('on campus');
+          case 'short-commute':
+            return distance.includes('1.') || distance.includes('2.');
+          case 'moderate-commute':
+            return distance.includes('3.') || distance.includes('4.') || distance.includes('5.');
+          case 'long-commute':
+            return true; // All options for long commute
+          default:
+            return true;
+        }
+      });
+    }
+
+    setFilteredResults({
+      ...matchData,
+      recommendations: filtered
+    });
+  };
 
   // Auto-save results for authenticated users with new match data
   useEffect(() => {
@@ -178,7 +261,18 @@ const Results = () => {
         </div>
 
         {/* Results */}
-        <ResultsDisplay data={matchData} source={location.state?.source} />
+        <div className="space-y-6">
+          {/* Filters for Housing Results */}
+          {isHousingResults && (
+            <HousingFilters 
+              onFiltersChange={handleFiltersChange}
+              isInternationalStudent={source?.includes('international')}
+            />
+          )}
+
+          {/* Results Display */}
+          <ResultsDisplay data={filteredResults || matchData} source={source} />
+        </div>
       </div>
     </div>
   );

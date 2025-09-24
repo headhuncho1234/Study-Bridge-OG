@@ -20,6 +20,8 @@ const HousingQuestionnairePage = () => {
       const prompt = `Generate comprehensive housing recommendations based on the following preferences:
 
 University: ${formData.university}
+City: ${formData.city}
+ZIP Code: ${formData.zipCode}
 Budget: $${formData.budget[0]} per month
 Housing Type: ${formData.housingType}
 Preferred Locations: ${formData.location.join(', ')}
@@ -28,6 +30,7 @@ Important Amenities: ${formData.amenities.join(', ')}
 Transportation: ${formData.transportation.join(', ')}
 Timeline: ${formData.timeline}
 Special Requirements: ${formData.additionalRequirements}
+International Student: ${formData.isInternationalStudent ? 'Yes' : 'No'}
 
 Please provide:
 1. A brief profile summary
@@ -90,9 +93,9 @@ Format as JSON with the structure:
         }
       } catch (parseError) {
         console.error('Error parsing AI response:', parseError);
-        // Enhanced fallback data with 5+ housing options
+        // Enhanced fallback data with 5+ housing options and international student considerations
         housingResults = {
-          profile: `Housing search for ${formData.university} student with $${formData.budget[0]}/month budget`,
+          profile: `Housing search for ${formData.university} student with $${formData.budget[0]}/month budget${formData.isInternationalStudent ? ' (International Student)' : ''}`,
           recommendations: [
             {
               name: "Campus View Apartments",
@@ -102,19 +105,19 @@ Format as JSON with the structure:
               type: "Apartment",
               amenities: ["Furnished", "Wi-Fi included", "Gym access"],
               pros: ["Close to campus", "Modern facilities", "Great reviews"],
-              cons: ["Higher rent", "Limited parking"],
+              cons: ["Higher rent", "Limited parking", formData.isInternationalStudent ? "Guarantor required" : ""].filter(Boolean),
               contact: "contact@campusview.com",
               match_score: 95
             },
             {
               name: "Student Housing Complex",
-              address: "456 College Street",
+              address: "456 College Street", 
               rent: `$${Math.round(formData.budget[0] * 0.75)}/month`,
               distance: "1.2 miles from campus",
               type: "Student Apartment",
               amenities: ["Shuttle service", "Pool", "Study rooms"],
               pros: ["Affordable", "Student community", "Great amenities"],
-              cons: ["Further from campus", "Can be noisy"],
+              cons: ["Further from campus", "Can be noisy", formData.isInternationalStudent ? "Guarantor required" : ""].filter(Boolean),
               contact: "(555) 123-4567",
               match_score: 88
             },
@@ -122,24 +125,24 @@ Format as JSON with the structure:
               name: "University Residence Hall",
               address: "On Campus",
               rent: `$${Math.round(formData.budget[0] * 0.8)}/month`,
-              distance: "On campus",
+              distance: "On campus", 
               type: "Dormitory",
               amenities: ["Meal plan included", "24/7 security", "Study lounges"],
-              pros: ["On campus", "Meal plan", "Safe environment"],
+              pros: ["On campus", "Meal plan", "Safe environment", formData.isInternationalStudent ? "No guarantor required" : ""].filter(Boolean),
               cons: ["Shared facilities", "Strict rules"],
               contact: "housing@university.edu",
-              match_score: 90
+              match_score: formData.isInternationalStudent ? 95 : 90
             },
             {
               name: "Riverside Apartments",
               address: "789 River Road",
               rent: `$${Math.round(formData.budget[0] * 0.85)}/month`,
               distance: "1.8 miles from campus",
-              type: "Apartment",
+              type: "Apartment", 
               amenities: ["River view", "Parking included", "Laundry"],
               pros: ["Beautiful location", "Quiet area", "Good value"],
-              cons: ["Need transportation", "Older building"],
-              contact: "info@riversideapts.com",
+              cons: ["Need transportation", "Older building", formData.isInternationalStudent ? "Guarantor required" : ""].filter(Boolean),
+              contact: "info@riversideapts.com", 
               match_score: 82
             },
             {
@@ -149,10 +152,10 @@ Format as JSON with the structure:
               distance: "2-5 miles from campus",
               type: "Homestay",
               amenities: ["Meals included", "Cultural exchange", "Private room"],
-              pros: ["Cultural immersion", "Meals included", "Affordable"],
+              pros: ["Cultural immersion", "Meals included", "Affordable", formData.isInternationalStudent ? "Guarantor may be waived" : ""].filter(Boolean),
               cons: ["Less independence", "Variable locations"],
               contact: "homestay@university.edu",
-              match_score: 78
+              match_score: formData.isInternationalStudent ? 85 : 78
             }
           ],
           tips: ["Start searching early", "Visit properties in person", "Check reviews online"],
@@ -174,7 +177,7 @@ Format as JSON with the structure:
       navigate('/results', { 
         state: { 
           matchData: housingResults,
-          source: 'housing-questionnaire'
+          source: formData.isInternationalStudent ? 'housing-questionnaire-international' : 'housing-questionnaire'
         } 
       });
 

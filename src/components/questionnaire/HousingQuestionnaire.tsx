@@ -15,11 +15,14 @@ export interface HousingPreferences {
   budget: number[];
   housingType: string;
   location: string[];
+  city: string;
+  zipCode: string;
   roommates: string;
   amenities: string[];
   transportation: string[];
   timeline: string;
   additionalRequirements: string;
+  isInternationalStudent: boolean;
 }
 
 interface HousingQuestionnaireProps {
@@ -35,11 +38,14 @@ const HousingQuestionnaire = ({ onSubmit, isLoading }: HousingQuestionnaireProps
     budget: [800],
     housingType: '',
     location: [],
+    city: '',
+    zipCode: '',
     roommates: '',
     amenities: [],
     transportation: [],
     timeline: '',
-    additionalRequirements: ''
+    additionalRequirements: '',
+    isInternationalStudent: false
   });
 
   const handleNext = () => {
@@ -102,6 +108,36 @@ const HousingQuestionnaire = ({ onSubmit, isLoading }: HousingQuestionnaireProps
                   value={formData.university}
                   onChange={(e) => setFormData(prev => ({ ...prev, university: e.target.value }))}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    placeholder="Enter city name"
+                    value={formData.city}
+                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zipCode">ZIP Code (Optional)</Label>
+                  <Input
+                    id="zipCode"
+                    placeholder="Enter ZIP code"
+                    value={formData.zipCode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, zipCode: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="international"
+                  checked={formData.isInternationalStudent}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isInternationalStudent: checked as boolean }))}
+                />
+                <Label htmlFor="international">I am an international student</Label>
               </div>
 
               <div>

@@ -290,8 +290,67 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
     </div>
   );
 
-  const renderHousingResults = (results: HousingResults) => (
+  const renderHousingResults = (results: HousingResults, isInternational = false) => (
     <div className="space-y-6">
+      {/* Guarantor Disclaimer for International Students */}
+      {isInternational && (
+        <Card className="border-warning bg-warning/5">
+          <CardHeader>
+            <CardTitle className="text-warning flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              Important: Guarantor Requirements for International Students
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-warning/10 p-4 rounded-md">
+              <p className="text-sm mb-3">
+                <strong>International students are generally required to have a guarantor for leases.</strong> 
+                A guarantor must have a valid US social security number and a good credit score to pass 
+                the credit check. Since international students may not have SSNs or US credit history, 
+                a guarantor is necessary for most leases.
+              </p>
+              
+              <div>
+                <h4 className="font-semibold mb-2">Guarantor Alternatives:</h4>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <span className="w-1 h-1 bg-primary rounded-full"></span>
+                    <span>Third-party guarantor services (e.g., Insurent, TheGuarantors)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1 h-1 bg-primary rounded-full"></span>
+                    <span>Graduate assistantships that may waive guarantor requirements</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1 h-1 bg-primary rounded-full"></span>
+                    <span>On-campus housing programs designed for international students</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1 h-1 bg-primary rounded-full"></span>
+                    <span>Security deposit alternatives (larger upfront payments)</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 mt-4">
+                <Button variant="outline" size="sm" className="text-xs">
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Find Guarantor Services
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs">
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Graduate Assistantships
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs">
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  International Student Housing
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       <div className="grid gap-6">
         {results.recommendations?.map((housing, index) => (
           <Card key={index} className="hover:shadow-card transition-all duration-300">
@@ -312,6 +371,21 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Guarantor Status for International Students */}
+              {isInternational && (
+                <div className="bg-accent/10 p-3 rounded-md border border-accent/20">
+                  <div className="text-sm font-medium text-accent mb-1">Guarantor Requirements:</div>
+                  <p className="text-xs text-muted-foreground">
+                    {housing.type === 'Dormitory' || housing.type === 'On-Campus' 
+                      ? 'No guarantor required - University housing'
+                      : housing.type === 'Homestay'
+                      ? 'Guarantor may be waived - Contact host family'
+                      : 'Guarantor required - Consider third-party services'
+                    }
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-success" />
@@ -466,7 +540,11 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
   } else if ('scholarships' in data) {
     return renderScholarshipResults(data as ScholarshipResults);
   } else if ('recommendations' in data) {
-    return renderHousingResults(data as HousingResults);
+    const housingData = data as HousingResults;
+    // Check if source indicates international student status
+    const isInternational = source?.includes('international') || 
+      (housingData.profile && housingData.profile.toLowerCase().includes('international'));
+    return renderHousingResults(housingData, isInternational);
   } else if ('roadmap' in data || 'document_checklist' in data) {
     return renderVisaResults(data as VisaResults);
   }
