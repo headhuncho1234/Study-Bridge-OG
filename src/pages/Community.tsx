@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Heart, MessageCircle, Share2 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Plus, Heart, MessageCircle, Share2, Home, GraduationCap, Heart as WellnessIcon, DollarSign, FileText, Briefcase } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import DOMPurify from "dompurify";
 
@@ -28,6 +29,7 @@ interface Post {
   comments: number;
   tags: string[];
   images?: string[];
+  channel: string;
 }
 
 const sanitizeAndFormatContent = (htmlContent: string): string => {
@@ -71,13 +73,31 @@ const Community = () => {
   const [selectedTag, setSelectedTag] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeChannel, setActiveChannel] = useState(searchParams.get('channel') || 'general');
   
   const { toast } = useToast();
   const { user } = useAuth();
 
+  const channels = [
+    { id: 'general', name: 'General Student Life', icon: <Home className="h-4 w-4" /> },
+    { id: 'housing', name: 'Housing', icon: <GraduationCap className="h-4 w-4" /> },
+    { id: 'wellness', name: 'Wellness', icon: <WellnessIcon className="h-4 w-4" /> },
+    { id: 'scholarships', name: 'Scholarships', icon: <DollarSign className="h-4 w-4" /> },
+    { id: 'visa', name: 'Visa', icon: <FileText className="h-4 w-4" /> },
+    { id: 'career', name: 'Career/Internships', icon: <Briefcase className="h-4 w-4" /> },
+  ];
+
   useEffect(() => {
     loadPosts();
   }, []);
+
+  useEffect(() => {
+    const channel = searchParams.get('channel');
+    if (channel && channels.find(c => c.id === channel)) {
+      setActiveChannel(channel);
+    }
+  }, [searchParams]);
 
   const loadPosts = async () => {
     try {
@@ -98,7 +118,8 @@ const Community = () => {
         likes: post.likes_count || 0,
         comments: post.comments_count || 0,
         tags: [],
-        images: post.images || []
+        images: post.images || [],
+        channel: post.channel || 'general'
       })) || [];
 
       setPosts(formattedPosts);
@@ -116,7 +137,8 @@ const Community = () => {
           likes: 24,
           comments: 8,
           tags: ["tips", "university-life", "international"],
-          images: []
+          images: [],
+          channel: "general"
         },
         {
           id: "2", 
@@ -128,7 +150,8 @@ const Community = () => {
           likes: 156,
           comments: 32,
           tags: ["scholarships", "success-story"],
-          images: []
+          images: [],
+          channel: "scholarships"
         }
       ];
       setPosts(samplePosts);
@@ -148,6 +171,7 @@ const Community = () => {
           title: newPost.title,
           content: newPost.content,
           images: newPost.images,
+          channel: newPost.channel,
           user_id: user.id
         })
         .select()
@@ -177,8 +201,16 @@ const Community = () => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          post.content.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTag = !selectedTag || post.tags.includes(selectedTag);
-    return matchesSearch && matchesTag;
+    const matchesChannel = post.channel === activeChannel;
+    return matchesSearch && matchesTag && matchesChannel;
   });
+
+  const handleChannelChange = (channel: string) => {
+    setActiveChannel(channel);
+    setSearchParams({ channel });
+    setSearchQuery("");
+    setSelectedTag("");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -221,143 +253,165 @@ const Community = () => {
           </div>
         </div>
 
-        {/* Search and Filters */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="md:col-span-3">
-            <div className="relative">
-              <Input
-                placeholder="Search posts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-              <MessageCircle className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            </div>
-          </div>
+        {/* Channel Navigation */}
+        <Tabs value={activeChannel} onValueChange={handleChannelChange} className="mb-8">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+            {channels.map((channel) => (
+              <TabsTrigger 
+                key={channel.id} 
+                value={channel.id}
+                className="flex items-center gap-2 text-xs md:text-sm"
+              >
+                {channel.icon}
+                <span className="hidden sm:inline">{channel.name}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
           
-          <div className="md:col-span-1">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={selectedTag === "" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedTag("")}
-              >
-                All
-              </Button>
-              {popularTags.map((tag) => (
-                <Button
-                  key={tag}
-                  variant={selectedTag === tag ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedTag(tag)}
-                  className="text-xs"
-                >
-                  {tag}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Posts */}
-        <div className="space-y-6">
-          {filteredPosts.map((post) => (
-            <Card key={post.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={post.authorAvatar} />
-                      <AvatarFallback>{post.author.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-semibold text-lg">{post.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        by {post.author} • {post.date}
-                      </p>
-                    </div>
+          {channels.map((channel) => (
+            <TabsContent key={channel.id} value={channel.id}>
+              {/* Search and Filters */}
+              <div className="grid md:grid-cols-4 gap-6 mb-8">
+                <div className="md:col-span-3">
+                  <div className="relative">
+                    <Input
+                      placeholder={`Search ${channel.name.toLowerCase()} posts...`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                    <MessageCircle className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="text-muted-foreground mb-4 line-clamp-3 whitespace-pre-line">
-                  {sanitizeAndFormatContent(post.content)}
-                </div>
                 
-                {post.images && post.images.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-                    {post.images.map((image, index) => (
-                      <img
-                        key={index}
-                        src={image}
-                        alt={`Post image ${index + 1}`}
-                        className="rounded-lg object-cover aspect-square"
-                      />
-                    ))}
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground">
-                      <Heart className="h-4 w-4 mr-1" />
-                      {post.likes}
+                <div className="md:col-span-1">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={selectedTag === "" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedTag("")}
+                    >
+                      All
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-muted-foreground">
-                      <MessageCircle className="h-4 w-4 mr-1" />
-                      {post.comments}
-                    </Button>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {post.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
+                    {popularTags.map((tag) => (
+                      <Button
+                        key={tag}
+                        variant={selectedTag === tag ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedTag(tag)}
+                        className="text-xs"
+                      >
                         {tag}
-                      </Badge>
+                      </Button>
                     ))}
-                    <Button variant="ghost" size="sm">
-                      <Share2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
 
-        {filteredPosts.length === 0 && (
-          <Card className="text-center py-12">
-            <CardContent>
-              <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">No posts found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchQuery || selectedTag 
-                  ? "Try adjusting your search or filters" 
-                  : "Be the first to share your experience with the community!"
-                }
-              </p>
-              <Button 
-                onClick={() => {
-                  if (!user) {
-                    setIsAuthModalOpen(true);
-                  } else {
-                    setIsCreateModalOpen(true);
-                  }
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Post
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+              {/* Posts */}
+              <div className="space-y-6">
+                {filteredPosts.map((post) => (
+                  <Card key={post.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={post.authorAvatar} />
+                            <AvatarFallback>{post.author.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-semibold text-lg">{post.title}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              by {post.author} • {post.date}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent>
+                      <div className="text-muted-foreground mb-4 line-clamp-3 whitespace-pre-line">
+                        {sanitizeAndFormatContent(post.content)}
+                      </div>
+                      
+                      {post.images && post.images.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                          {post.images.map((image, index) => (
+                            <img
+                              key={index}
+                              src={image}
+                              alt={`Post image ${index + 1}`}
+                              className="rounded-lg object-cover aspect-square"
+                            />
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <Button variant="ghost" size="sm" className="text-muted-foreground">
+                            <Heart className="h-4 w-4 mr-1" />
+                            {post.likes}
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-muted-foreground">
+                            <MessageCircle className="h-4 w-4 mr-1" />
+                            {post.comments}
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {post.tags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                          <Button variant="ghost" size="sm">
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {filteredPosts.length === 0 && (
+                <Card className="text-center py-12">
+                  <CardContent>
+                    <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-semibold mb-2">No posts found in {channel.name}</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {searchQuery || selectedTag 
+                        ? "Try adjusting your search or filters" 
+                        : `Be the first to share your experience in the ${channel.name.toLowerCase()} channel!`
+                      }
+                    </p>
+                    <Button 
+                      onClick={() => {
+                        if (!user) {
+                          setIsAuthModalOpen(true);
+                        } else {
+                          setIsCreateModalOpen(true);
+                        }
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Post
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
       </div>
 
       <CreatePostModal 
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreatePost}
+        defaultChannel={activeChannel}
+        channels={channels}
       />
 
       <AuthModal 

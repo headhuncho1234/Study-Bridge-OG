@@ -215,7 +215,7 @@ const ScholarshipDatabase = () => {
                 Find My Scholarships
               </Button>
             </Link>
-            <Link to="/community">
+            <Link to="/community?channel=scholarships">
               <Button variant="outline" size="lg">
                 Success Stories
               </Button>

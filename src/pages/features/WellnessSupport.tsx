@@ -311,7 +311,7 @@ const WellnessSupport = () => {
                   >
                     Connect with Support
                   </Button>
-                  <Link to="/community">
+                  <Link to="/community?channel=wellness">
                     <Button variant="outline" size="lg">
                       Join Peer Groups
                     </Button>

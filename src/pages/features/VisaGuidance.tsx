@@ -247,7 +247,7 @@ const VisaGuidance = () => {
                 Start Visa Preparation
               </Button>
             </Link>
-            <Link to="/community">
+            <Link to="/community?channel=visa">
               <Button variant="outline" size="lg">
                 Read Success Stories
               </Button>

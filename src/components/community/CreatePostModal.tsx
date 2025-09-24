@@ -3,21 +3,52 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import '../ReactQuillStyles.css';
 import { useToast } from "@/hooks/use-toast";
 
+interface Channel {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+}
+
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  authorAvatar: string;
+  date: string;
+  likes: number;
+  comments: number;
+  tags: string[];
+  images?: string[];
+  channel: string;
+}
+
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (post: { title: string; content: string; files?: File[] }) => void;
-  prefillData?: { title: string; content: string };
+  onSubmit: (post: Omit<Post, 'id' | 'date' | 'likes' | 'comments'>) => void;
+  prefillData?: Partial<Omit<Post, 'id' | 'date' | 'likes' | 'comments'>>;
+  defaultChannel?: string;
+  channels: Channel[];
 }
 
-const CreatePostModal = ({ isOpen, onClose, onSubmit, prefillData }: CreatePostModalProps) => {
+const CreatePostModal = ({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  prefillData,
+  defaultChannel = 'general',
+  channels 
+}: CreatePostModalProps) => {
   const [title, setTitle] = useState(prefillData?.title || '');
   const [content, setContent] = useState(prefillData?.content || '');
+  const [channel, setChannel] = useState(prefillData?.channel || defaultChannel);
   const [files, setFiles] = useState<File[]>([]);
   const { toast } = useToast();
 
@@ -33,11 +64,23 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, prefillData }: CreatePostM
       return;
     }
 
-    onSubmit({ title: title.trim(), content: content.trim(), files });
+    // In a real app, you'd upload the files to a storage service
+    const imageUrls = files.map(file => URL.createObjectURL(file));
+
+    onSubmit({
+      title: title.trim(),
+      content: content.trim(),
+      author: 'Anonymous User',
+      authorAvatar: '',
+      tags: [],
+      images: imageUrls,
+      channel
+    });
     
     // Reset form
     setTitle('');
     setContent('');
+    setChannel(defaultChannel);
     setFiles([]);
     onClose();
   };
@@ -87,6 +130,25 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, prefillData }: CreatePostM
               placeholder="Enter your post title..."
               className="mt-1"
             />
+          </div>
+
+          <div>
+            <Label htmlFor="channel">Channel</Label>
+            <Select value={channel} onValueChange={setChannel}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {channels.map((ch) => (
+                  <SelectItem key={ch.id} value={ch.id}>
+                    <div className="flex items-center gap-2">
+                      {ch.icon}
+                      {ch.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

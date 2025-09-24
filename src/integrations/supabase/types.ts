@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       community_posts: {
         Row: {
+          channel: string
           comments_count: number | null
           content: string
           created_at: string
@@ -27,6 +28,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          channel?: string
           comments_count?: number | null
           content: string
           created_at?: string
@@ -38,6 +40,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          channel?: string
           comments_count?: number | null
           content?: string
           created_at?: string

@@ -263,7 +263,7 @@ const HousingSolutions = () => {
                 Start Housing Search
               </Button>
             </Link>
-            <Link to="/community">
+            <Link to="/community?channel=housing">
               <Button variant="outline" size="lg">
                 Housing Reviews
               </Button>
