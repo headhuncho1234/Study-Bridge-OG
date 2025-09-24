@@ -532,6 +532,15 @@ const Community = () => {
                             <MessageCircle className="h-4 w-4 mr-1" />
                             {post.comments} Comment{post.comments !== 1 ? 's' : ''}
                           </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-muted-foreground hover:text-primary"
+                            onClick={() => handleUserClick(post.user_id)}
+                          >
+                            <User className="h-4 w-4 mr-1" />
+                            View Profile
+                          </Button>
                         </div>
                         
                         <div className="flex items-center gap-2">

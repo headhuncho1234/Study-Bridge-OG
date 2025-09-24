@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AuthModal from "@/components/auth/AuthModal";
+import FollowThreadButton from "./FollowThreadButton";
 
 interface Comment {
   id: string;
@@ -145,9 +146,6 @@ const CommentSystem = ({ postId }: CommentSystemProps) => {
       });
 
       loadComments();
-      
-      // Update post comment count
-      await supabase.rpc('increment_comment_count', { post_id: postId });
       
     } catch (error) {
       console.error('Error posting comment:', error);
@@ -321,6 +319,11 @@ const CommentSystem = ({ postId }: CommentSystemProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Follow Thread Button */}
+      <div className="flex justify-end">
+        <FollowThreadButton postId={postId} />
+      </div>
+
       {/* New Comment Form */}
       <Card>
         <CardContent className="pt-4">
