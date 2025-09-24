@@ -94,23 +94,55 @@ const SavedResults = () => {
     window.location.href = `/results?data=${encodeURIComponent(JSON.stringify(result.data))}`;
   };
 
-  const handleExport = (result: SavedResult) => {
-    // Simple PDF export - create a downloadable file
-    const dataStr = JSON.stringify(result.data, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${result.title.replace(/\s+/g, '_')}_results.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Results exported",
-      description: "Your results have been downloaded.",
-    });
+  const handleExport = async (result: SavedResult) => {
+    try {
+      const { generateDynamicPDF } = await import('@/utils/pdfGenerator');
+      
+      // Determine result type based on data structure
+      let resultType: 'university' | 'scholarship' | 'housing' | 'wellness' | 'visa' = 'university';
+      
+      if ('matches' in result.data) {
+        resultType = 'university';
+      } else if ('scholarships' in result.data) {
+        resultType = 'scholarship';
+      } else if ('recommendations' in result.data) {
+        resultType = 'housing';
+      } else if ('roadmap' in result.data || 'document_checklist' in result.data) {
+        resultType = 'visa';
+      } else if (result.title.toLowerCase().includes('wellness')) {
+        resultType = 'wellness';
+      }
+      
+      // Extract user answers from profile data if available
+      const userAnswers = result.data.profile || {};
+      
+      await generateDynamicPDF(result.data, resultType, userAnswers, result.title);
+      
+      toast({
+        title: "PDF Generated! 📄",
+        description: "Your personalized report has been downloaded.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      
+      // Fallback to JSON export
+      const dataStr = JSON.stringify(result.data, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${result.title.replace(/\s+/g, '_')}_results.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Results exported as JSON",
+        description: "PDF generation failed, exported as JSON instead.",
+        variant: "destructive"
+      });
+    }
   };
 
   if (!user) {

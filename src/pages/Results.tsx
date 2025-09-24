@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, Home } from "lucide-react";
+import { ArrowLeft, Save, Home, Download } from "lucide-react";
 import ResultsDisplay from "@/components/questionnaire/ResultsDisplay";
 import HousingFilters from "@/components/housing/HousingFilters";
 import { saveResult } from "@/hooks/useLocalStorage";
@@ -213,6 +213,62 @@ const Results = () => {
     navigate('/');
   };
 
+  const handleExportPDF = async () => {
+    if (!matchData) return;
+    
+    try {
+      const { generateDynamicPDF } = await import('@/utils/pdfGenerator');
+      
+      // Determine result type based on source or data structure
+      let resultType: 'university' | 'scholarship' | 'housing' | 'wellness' | 'visa' = 'university';
+      
+      if (source?.includes('scholarship')) {
+        resultType = 'scholarship';
+      } else if (source?.includes('housing')) {
+        resultType = 'housing';
+      } else if (source?.includes('visa')) {
+        resultType = 'visa';
+      } else if (source?.includes('wellness')) {
+        resultType = 'wellness';
+      } else if ('matches' in matchData) {
+        resultType = 'university';
+      } else if ('scholarships' in matchData) {
+        resultType = 'scholarship';
+      } else if ('recommendations' in matchData) {
+        resultType = 'housing';
+      } else if ('roadmap' in matchData || 'document_checklist' in matchData) {
+        resultType = 'visa';
+      }
+      
+      // Extract user answers from profile data if available
+      const userAnswers = matchData.profile || {};
+      
+      const title = source === 'scholarship-questionnaire' 
+        ? `Scholarship_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}`
+        : source === 'housing-questionnaire' 
+        ? `Housing_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}`
+        : source === 'visa-questionnaire'
+        ? `Visa_Guide_${new Date().toLocaleDateString().replace(/\//g, '-')}`
+        : source === 'wellness'
+        ? `Wellness_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}`
+        : `University_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}`;
+      
+      await generateDynamicPDF(matchData, resultType, userAnswers, title);
+      
+      toast({
+        title: "PDF Generated! 📄",
+        description: "Your personalized report has been downloaded.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Export failed",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (!matchData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
@@ -251,13 +307,24 @@ const Results = () => {
             </Button>
           </div>
           
-          <Button
-            onClick={handleSaveResults}
-            className="flex items-center gap-2"
-          >
-            <Save className="h-4 w-4" />
-            Save Results
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportPDF}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export PDF
+            </Button>
+            
+            <Button
+              onClick={handleSaveResults}
+              className="flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Save Results
+            </Button>
+          </div>
         </div>
 
         {/* Results */}
