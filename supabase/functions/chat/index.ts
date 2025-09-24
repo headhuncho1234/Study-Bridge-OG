@@ -166,7 +166,8 @@ CRITICAL: Always return exactly 5-7 university matches. Include accurate U.S. Ne
         }
       } catch (jsonError) {
         console.error('JSON validation error:', jsonError);
-        throw new Error(`Invalid JSON response: ${jsonError.message}`);
+        const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown JSON error';
+        throw new Error(`Invalid JSON response: ${errorMessage}`);
       }
     }
 
@@ -181,16 +182,18 @@ CRITICAL: Always return exactly 5-7 university matches. Include accurate U.S. Ne
     let errorType = 'unknown';
     let statusCode = 500;
     
-    if (error.message.includes('network') || error.message.includes('fetch')) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
       errorType = 'network';
       statusCode = 503;
-    } else if (error.message.includes('JSON')) {
+    } else if (errorMessage.includes('JSON')) {
       errorType = 'json_parse';
       statusCode = 422;
-    } else if (error.message.includes('API key')) {
+    } else if (errorMessage.includes('API key')) {
       errorType = 'auth';
       statusCode = 401;
-    } else if (error.message.includes('timeout')) {
+    } else if (errorMessage.includes('timeout')) {
       errorType = 'timeout';
       statusCode = 408;
     }
@@ -198,7 +201,7 @@ CRITICAL: Always return exactly 5-7 university matches. Include accurate U.S. Ne
     return new Response(JSON.stringify({ 
       error: 'Failed to generate university matches',
       error_type: errorType,
-      details: error.message,
+      details: errorMessage,
       timestamp: new Date().toISOString()
     }), {
       status: statusCode,
