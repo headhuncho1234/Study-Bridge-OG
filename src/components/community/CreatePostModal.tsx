@@ -8,6 +8,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import '../ReactQuillStyles.css';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Channel {
   id: string;
@@ -27,6 +28,7 @@ interface Post {
   tags: string[];
   images?: string[];
   channel: string;
+  user_id: string;
 }
 
 interface CreatePostModalProps {
@@ -51,9 +53,19 @@ const CreatePostModal = ({
   const [channel, setChannel] = useState(prefillData?.channel || defaultChannel);
   const [files, setFiles] = useState<File[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to create a post.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (!title.trim() || !content.trim()) {
       toast({
@@ -70,11 +82,12 @@ const CreatePostModal = ({
     onSubmit({
       title: title.trim(),
       content: content.trim(),
-      author: 'Anonymous User',
+      author: 'User', // This will be overridden by the parent component with real user data
       authorAvatar: '',
       tags: [],
       images: imageUrls,
-      channel
+      channel,
+      user_id: user.id
     });
     
     // Reset form

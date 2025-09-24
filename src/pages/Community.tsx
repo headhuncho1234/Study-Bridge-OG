@@ -140,19 +140,28 @@ const Community = () => {
         .from('community_posts')
         .select(`
           *,
-          profiles!inner(username, display_name, avatar_url)
+          profiles(username, display_name, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading posts:', error);
+        toast({
+          title: "Connection Error",
+          description: "Unable to load posts. Please check your internet connection and try again.",
+          variant: "destructive"
+        });
+        setPosts([]);
+        return;
+      }
 
       const formattedPosts = data?.map(post => ({
         id: post.id,
         title: post.title,
         content: post.content,
         user_id: post.user_id,
-        author: (post as any).profiles.display_name || (post as any).profiles.username || 'Anonymous User',
-        authorAvatar: (post as any).profiles.avatar_url || '',
+        author: (post as any).profiles?.display_name || (post as any).profiles?.username || 'Anonymous User',
+        authorAvatar: (post as any).profiles?.avatar_url || '',
         date: new Date(post.created_at).toLocaleDateString(),
         likes: post.likes_count || 0,
         dislikes: post.dislikes_count || 0,
@@ -166,40 +175,12 @@ const Community = () => {
       setPosts(formattedPosts);
     } catch (error) {
       console.error('Error loading posts:', error);
-      // Fallback to sample posts
-      const samplePosts: Post[] = [
-        {
-          id: "1",
-          title: "First Week at University of Michigan - Tips for International Students",
-          content: "Just finished my first week at UMich! Here are some tips for fellow international students...",
-          user_id: "sample-1",
-          author: "Sarah Chen",
-          authorAvatar: "",
-          date: "2024-01-15",
-          likes: 24,
-          dislikes: 2,
-          comments: 8,
-          tags: ["tips", "university-life", "international"],
-          images: [],
-          channel: "general"
-        },
-        {
-          id: "2", 
-          title: "Scholarship Success Story - $25k Merit Award",
-          content: "I'm excited to share that I received a $25,000 merit scholarship! Here's how I did it...",
-          user_id: "sample-2",
-          author: "David Kim",
-          authorAvatar: "",
-          date: "2024-01-14",
-          likes: 156,
-          dislikes: 3,
-          comments: 32,
-          tags: ["scholarships", "success-story"],
-          images: [],
-          channel: "scholarships"
-        }
-      ];
-      setPosts(samplePosts);
+      toast({
+        title: "Error Loading Posts",
+        description: "Something went wrong while loading community posts. Please refresh the page.",
+        variant: "destructive"
+      });
+      setPosts([]);
     }
   };
 
