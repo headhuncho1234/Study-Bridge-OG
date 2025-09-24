@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, GraduationCap, Home, DollarSign, FileText, Calendar, TrendingUp } from "lucide-react";
+import { ArrowLeft, GraduationCap, Home, DollarSign, FileText, Calendar, TrendingUp, Coins, Trophy } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AuthModal from "@/components/auth/AuthModal";
+import { useWellnessData } from "@/hooks/useWellnessData";
 
 interface DashboardData {
   savedResults: any[];
@@ -23,6 +24,7 @@ interface DashboardData {
 }
 
 const Dashboard = () => {
+  const { wellnessData } = useWellnessData();
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     savedResults: [],
     applicationDeadlines: [],
@@ -133,6 +135,55 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
+
+        {/* Wellness Stats */}
+        {(wellnessData.coins > 0 || wellnessData.streak > 0 || wellnessData.badges.length > 0) && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Wellness Progress</h2>
+            <div className="grid md:grid-cols-3 gap-4">
+              <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Coins className="h-6 w-6 text-yellow-500" />
+                    <div>
+                      <p className="text-xl font-bold">{wellnessData.coins}</p>
+                      <p className="text-sm text-muted-foreground">Wellness Coins</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Trophy className="h-6 w-6 text-green-500" />
+                    <div>
+                      <p className="text-xl font-bold">{wellnessData.streak}</p>
+                      <p className="text-sm text-muted-foreground">Day Streak</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Badge className="text-purple-500 bg-purple-100 dark:bg-purple-900">
+                      {wellnessData.badges.length} Badges
+                    </Badge>
+                    <div className="flex gap-1">
+                      {wellnessData.badges.slice(0, 3).map((badge, idx) => (
+                        <span key={idx} className="text-lg">
+                          {badge === 'zen-warrior' ? '⚔️' : badge === 'mind-master' ? '🧠' : '👑'}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
 
         {/* Progress Overview */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
@@ -286,7 +337,7 @@ const Dashboard = () => {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-4 gap-4">
+            <div className="grid md:grid-cols-5 gap-4">
               <Link to="/questionnaires/housing">
                 <Button variant="outline" className="w-full h-20 flex flex-col">
                   <Home className="h-6 w-6 mb-2" />
@@ -309,6 +360,12 @@ const Dashboard = () => {
                 <Button variant="outline" className="w-full h-20 flex flex-col">
                   <GraduationCap className="h-6 w-6 mb-2" />
                   Community
+                </Button>
+              </Link>
+              <Link to="/features/wellness-support">
+                <Button variant="outline" className="w-full h-20 flex flex-col">
+                  <Trophy className="h-6 w-6 mb-2" />
+                  Wellness
                 </Button>
               </Link>
             </div>
