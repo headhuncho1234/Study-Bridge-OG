@@ -41,6 +41,28 @@ const CommentSystem = ({ postId }: CommentSystemProps) => {
 
   useEffect(() => {
     loadComments();
+    
+    // Set up real-time subscription for comments
+    const commentsSubscription = supabase
+      .channel(`comments_${postId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comments',
+          filter: `post_id=eq.${postId}`
+        },
+        (payload) => {
+          console.log('Comment change received:', payload);
+          loadComments(); // Reload comments when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(commentsSubscription);
+    };
   }, [postId]);
 
   const loadComments = async () => {
@@ -123,6 +145,10 @@ const CommentSystem = ({ postId }: CommentSystemProps) => {
       });
 
       loadComments();
+      
+      // Update post comment count
+      await supabase.rpc('increment_comment_count', { post_id: postId });
+      
     } catch (error) {
       console.error('Error posting comment:', error);
       toast({

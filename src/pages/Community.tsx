@@ -8,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Heart, MessageCircle, Share2, Home, GraduationCap, Heart as WellnessIcon, DollarSign, FileText, Briefcase, ThumbsDown, Eye, TrendingUp } from "lucide-react";
+import { ArrowLeft, Plus, Heart, MessageCircle, Share2, Home, GraduationCap, Heart as WellnessIcon, DollarSign, FileText, Briefcase, ThumbsDown, Eye, TrendingUp, Settings, User } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import DOMPurify from "dompurify";
 import CommentSystem from "@/components/community/CommentSystem";
+import ProfileEditModal from "@/components/community/ProfileEditModal";
 
 // Using default import for CreatePostModal
 import CreatePostModal from "@/components/community/CreatePostModal";
@@ -86,6 +87,7 @@ const Community = () => {
   const [activeChannel, setActiveChannel] = useState(searchParams.get('channel') || 'general');
   const [sortBy, setSortBy] = useState("newest");
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -102,6 +104,27 @@ const Community = () => {
 
   useEffect(() => {
     loadPosts();
+    
+    // Set up real-time subscription for posts
+    const postsSubscription = supabase
+      .channel('community_posts_changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'community_posts' 
+        },
+        (payload) => {
+          console.log('Post change received:', payload);
+          loadPosts(); // Reload posts when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(postsSubscription);
+    };
   }, []);
 
   useEffect(() => {
@@ -334,6 +357,17 @@ const Community = () => {
               <Plus className="h-4 w-4 mr-2" />
               Create Post
             </Button>
+            
+            {user && (
+              <Button
+                variant="outline"
+                onClick={() => setIsProfileEditOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Edit Profile
+              </Button>
+            )}
           </div>
         </div>
 
@@ -559,6 +593,11 @@ const Community = () => {
         onSubmit={handleCreatePost}
         defaultChannel={activeChannel}
         channels={channels}
+      />
+
+      <ProfileEditModal 
+        isOpen={isProfileEditOpen}
+        onClose={() => setIsProfileEditOpen(false)}
       />
 
       <AuthModal 
