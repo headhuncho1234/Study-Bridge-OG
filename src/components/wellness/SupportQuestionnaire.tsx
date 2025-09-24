@@ -66,7 +66,8 @@ const SupportQuestionnaire = ({ onClose }: SupportQuestionnaireProps) => {
             { name: 'Psychology Today Therapist Finder', link: 'https://psychologytoday.com/us/therapists' },
             { name: 'NIMH Treatment Locator', link: 'https://nimh.nih.gov/health/find-help' },
             { name: 'Campus Counseling Centers', link: '#' },
-            { name: 'Telehealth Mental Health Services', link: 'https://betterhelp.com' }
+            { name: 'Telehealth Mental Health Services', link: 'https://betterhelp.com' },
+            { name: 'International Student Health Insurance', link: 'https://www.internationalstudentinsurance.com/contact/' }
           ]
         };
       case 'test':

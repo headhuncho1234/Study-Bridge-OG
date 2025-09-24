@@ -37,6 +37,12 @@ const WellnessSupport = () => {
       title: "Campus Counseling",
       description: "Professional counseling services at your university",
       details: ["Individual therapy", "Group sessions", "Psychiatric services", "Crisis intervention"]
+    },
+    {
+      icon: <Heart className="h-8 w-8 text-blue-500" />,
+      title: "Health Insurance Support",
+      description: "International student health insurance guidance and resources",
+      details: ["Insurance plan comparisons", "Coverage explanations", "Claims assistance", "Emergency medical support"]
     }
   ];
 
