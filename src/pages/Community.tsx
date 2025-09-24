@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Plus, Heart, MessageCircle, Share2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import DOMPurify from "dompurify";
 
 // Using default import for CreatePostModal
 import CreatePostModal from "@/components/community/CreatePostModal";
@@ -28,6 +29,40 @@ interface Post {
   tags: string[];
   images?: string[];
 }
+
+const sanitizeAndFormatContent = (htmlContent: string): string => {
+  // First, sanitize the HTML to remove any dangerous content
+  const sanitized = DOMPurify.sanitize(htmlContent, {
+    ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'strong', 'em', 'ul', 'ol', 'li'],
+    ALLOWED_ATTR: []
+  });
+  
+  // Create a temporary div to parse the HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = sanitized;
+  
+  // Convert HTML to formatted text
+  let formattedText = tempDiv.textContent || tempDiv.innerText || '';
+  
+  // If there are paragraph tags, preserve paragraph breaks
+  if (sanitized.includes('<p>')) {
+    const paragraphs = sanitized.split(/<\/p>\s*<p[^>]*>/);
+    formattedText = paragraphs
+      .map(p => p.replace(/<[^>]+>/g, '').trim())
+      .filter(p => p.length > 0)
+      .join('\n\n');
+  } else {
+    // Replace <br> tags with line breaks
+    formattedText = sanitized.replace(/<br\s*\/?>/gi, '\n');
+    // Remove any remaining HTML tags
+    formattedText = formattedText.replace(/<[^>]+>/g, '');
+  }
+  
+  // Clean up extra whitespace while preserving intentional line breaks
+  formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+  
+  return formattedText;
+};
 
 const Community = () => {
   // State declarations
@@ -246,9 +281,9 @@ const Community = () => {
               </CardHeader>
               
               <CardContent>
-                <p className="text-muted-foreground mb-4 line-clamp-3">
-                  {post.content}
-                </p>
+                <div className="text-muted-foreground mb-4 line-clamp-3 whitespace-pre-line">
+                  {sanitizeAndFormatContent(post.content)}
+                </div>
                 
                 {post.images && post.images.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
