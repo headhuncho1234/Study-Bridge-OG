@@ -154,9 +154,10 @@ const WellnessRewards = ({ coins, onPurchase, ownedItems }: WellnessRewardsProps
             </h4>
             <div className="text-sm space-y-1 text-muted-foreground">
               <p>• Complete Focus Quest sessions (+1 coin each)</p>
+              <p>• Win arcade games under 5 minutes (+1 coin each)</p>
+              <p>• Win 3 consecutive arcade games (+1 bonus coin)</p>
               <p>• Unlock breathing exercises (+2 bonus coins)</p>
-              <p>• Maintain focus streaks (bonus coins for milestones)</p>
-              <p>• Participate in wellness community activities</p>
+              <p>• Maintain daily streaks (bonus coins for milestones)</p>
             </div>
           </CardContent>
         </Card>

@@ -7,11 +7,12 @@ import { ArrowLeft, Heart, Phone, MessageCircle, Users, Brain, Smile, Trophy, Ga
 import FocusQuest from "@/components/wellness/FocusQuest";
 import SupportQuestionnaire from "@/components/wellness/SupportQuestionnaire";
 import WellnessRewards from "@/components/wellness/WellnessRewards";
+import WellnessArcade from "@/components/wellness/WellnessArcade";
 import { useWellnessData } from "@/hooks/useWellnessData";
 
 const WellnessSupport = () => {
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
-  const { wellnessData, addCoins, updateStreak, purchaseItem } = useWellnessData();
+  const { wellnessData, addCoins, updateStreak, purchaseItem, updateArcadeStreak, addConsecutiveGame } = useWellnessData();
 
   const supportResources = [
     {
@@ -128,11 +129,15 @@ const WellnessSupport = () => {
         {/* Wellness Tabs */}
         <div className="mb-12">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="focus-quest" className="flex items-center gap-2">
                 <Gamepad2 className="h-4 w-4" />
                 Focus Quest
+              </TabsTrigger>
+              <TabsTrigger value="arcade" className="flex items-center gap-2">
+                <Gamepad2 className="h-4 w-4" />
+                Arcade
               </TabsTrigger>
               <TabsTrigger value="rewards" className="flex items-center gap-2">
                 <Trophy className="h-4 w-4" />
@@ -320,6 +325,10 @@ const WellnessSupport = () => {
                 onCoinsEarned={addCoins}
                 onStreakUpdate={updateStreak}
               />
+            </TabsContent>
+
+            <TabsContent value="arcade">
+              <WellnessArcade />
             </TabsContent>
 
             <TabsContent value="rewards">

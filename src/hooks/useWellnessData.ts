@@ -8,6 +8,10 @@ export interface WellnessData {
   badges: string[];
   ownedItems: string[];
   sessionsCompleted: number;
+  arcadeStreak: number;
+  lastArcadeDate: string | null;
+  consecutiveGames: number;
+  lastGameTime: number | null;
 }
 
 export interface WellnessStreak {
@@ -23,7 +27,11 @@ export const useWellnessData = () => {
     lastSessionDate: null,
     badges: [],
     ownedItems: [],
-    sessionsCompleted: 0
+    sessionsCompleted: 0,
+    arcadeStreak: 0,
+    lastArcadeDate: null,
+    consecutiveGames: 0,
+    lastGameTime: null
   });
 
   const addCoins = (amount: number) => {
@@ -104,21 +112,82 @@ export const useWellnessData = () => {
     return false;
   };
 
+  const updateArcadeStreak = () => {
+    const today = new Date().toDateString();
+    const lastDate = wellnessData.lastArcadeDate;
+    
+    let newStreak = wellnessData.arcadeStreak;
+    
+    if (!lastDate) {
+      newStreak = 1;
+    } else {
+      const lastArcadeDate = new Date(lastDate);
+      const todayDate = new Date(today);
+      const daysDiff = Math.floor((todayDate.getTime() - lastArcadeDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === 1) {
+        newStreak = wellnessData.arcadeStreak + 1;
+      } else if (daysDiff === 0) {
+        newStreak = wellnessData.arcadeStreak;
+      } else {
+        newStreak = 1;
+      }
+    }
+    
+    // Check for streak badges
+    const newBadges = [...wellnessData.badges];
+    if (newStreak >= 3 && !newBadges.includes('zen-warrior')) {
+      newBadges.push('zen-warrior');
+    }
+    if (newStreak >= 7 && !newBadges.includes('mind-master')) {
+      newBadges.push('mind-master');
+    }
+    if (newStreak >= 14 && !newBadges.includes('focus-champion')) {
+      newBadges.push('focus-champion');
+    }
+    
+    setWellnessData(prev => ({
+      ...prev,
+      arcadeStreak: newStreak,
+      lastArcadeDate: today,
+      badges: newBadges
+    }));
+    
+    return newStreak;
+  };
+
+  const addConsecutiveGame = (): number => {
+    const now = Date.now();
+    const lastGameTime = wellnessData.lastGameTime;
+    const timeDiff = lastGameTime ? now - lastGameTime : Infinity;
+    
+    // Reset if more than 10 minutes between games
+    const newConsecutiveCount = timeDiff > 600000 ? 1 : (wellnessData.consecutiveGames || 0) + 1;
+    
+    setWellnessData(prev => ({
+      ...prev,
+      consecutiveGames: newConsecutiveCount,
+      lastGameTime: now
+    }));
+    
+    return newConsecutiveCount;
+  };
+
   const getBadgeInfo = (badgeId: string) => {
     const badgeMap: Record<string, { name: string; description: string; icon: string }> = {
       'zen-warrior': {
         name: 'Zen Warrior',
-        description: '3-day focus streak',
+        description: '3-day arcade streak',
         icon: '⚔️'
       },
       'mind-master': {
         name: 'Mind Master', 
-        description: '7-day focus streak',
+        description: '7-day arcade streak',
         icon: '🧠'
       },
       'focus-champion': {
         name: 'Focus Champion',
-        description: '14-day focus streak', 
+        description: '14-day arcade streak', 
         icon: '👑'
       }
     };
@@ -130,6 +199,8 @@ export const useWellnessData = () => {
     addCoins,
     spendCoins,
     updateStreak,
+    updateArcadeStreak,
+    addConsecutiveGame,
     purchaseItem,
     getBadgeInfo
   };
