@@ -16,6 +16,8 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const [gameStarted, setGameStarted] = useState(false);
+  const [selectedCell, setSelectedCell] = useState<{row: number, col: number} | null>(null);
+  const [invalidMove, setInvalidMove] = useState(false);
 
   // Generate a simple 4x4 Sudoku puzzle
   const generatePuzzle = () => {
@@ -117,9 +119,23 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
     return true;
   };
 
-  const handleCellClick = (row: number, col: number, num: number) => {
+  const handleCellSelect = (row: number, col: number) => {
     if (!gameStarted) setGameStarted(true);
     if (gameStatus !== 'playing' || puzzle[row][col] !== null) return;
+    
+    setSelectedCell({ row, col });
+    setInvalidMove(false);
+  };
+
+  const handleNumberPlace = (num: number) => {
+    if (!selectedCell || gameStatus !== 'playing') {
+      setInvalidMove(true);
+      setTimeout(() => setInvalidMove(false), 1000);
+      return;
+    }
+
+    const { row, col } = selectedCell;
+    if (puzzle[row][col] !== null) return;
 
     const newBoard = userBoard.map(r => [...r]);
     
@@ -127,8 +143,11 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
       newBoard[row][col] = null;
     } else if (isValidMove(newBoard, row, col, num)) {
       newBoard[row][col] = num;
+      setSelectedCell(null); // Clear selection after successful placement
     } else {
-      return; // Invalid move
+      setInvalidMove(true);
+      setTimeout(() => setInvalidMove(false), 1000);
+      return;
     }
 
     setUserBoard(newBoard);
@@ -144,6 +163,8 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
     setGameStatus('playing');
     setTimeLeft(timeLimit);
     setGameStarted(false);
+    setSelectedCell(null);
+    setInvalidMove(false);
   };
 
   const formatTime = (seconds: number) => {
@@ -168,7 +189,7 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
         <Progress value={(timeLeft / timeLimit) * 100} className="w-full" />
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <HelpCircle className="h-3 w-3" />
-          Tap cell, then tap number 1-4
+          Click cell to select, then click number 1-4
         </div>
       </CardHeader>
       <CardContent>
@@ -177,10 +198,14 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
             row.map((cell, colIndex) => (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className={`aspect-square border-2 rounded-md flex items-center justify-center text-lg font-bold cursor-pointer
+                onClick={() => handleCellSelect(rowIndex, colIndex)}
+                className={`aspect-square border-2 rounded-md flex items-center justify-center text-lg font-bold transition-colors
                   ${puzzle[rowIndex][colIndex] !== null 
                     ? 'bg-muted border-muted-foreground text-foreground cursor-not-allowed' 
-                    : 'bg-background border-border hover:bg-muted/50'
+                    : `bg-background border-border hover:bg-muted/50 cursor-pointer
+                       ${selectedCell?.row === rowIndex && selectedCell?.col === colIndex 
+                         ? 'border-primary bg-primary/10' 
+                         : ''}`
                   }
                   ${(rowIndex === 1 || rowIndex === 2) && (colIndex === 1 || colIndex === 2) ? 'border-primary' : ''}
                 `}
@@ -196,24 +221,29 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
           {[1, 2, 3, 4].map(num => (
             <Button
               key={num}
-              variant="outline"
-              className="aspect-square p-0"
-              onClick={() => {
-                // Find selected cell or use first empty cell
-                for (let r = 0; r < 4; r++) {
-                  for (let c = 0; c < 4; c++) {
-                    if (puzzle[r][c] === null) {
-                      handleCellClick(r, c, num);
-                      return;
-                    }
-                  }
-                }
-              }}
+              variant={invalidMove ? "destructive" : "outline"}
+              className={`aspect-square p-0 transition-colors ${
+                selectedCell ? 'hover:bg-primary hover:text-primary-foreground' : ''
+              }`}
+              onClick={() => handleNumberPlace(num)}
+              disabled={gameStatus !== 'playing'}
             >
               {num}
             </Button>
           ))}
         </div>
+        
+        {invalidMove && (
+          <div className="text-center text-destructive text-sm mb-2">
+            {!selectedCell ? 'Select a cell first!' : 'Invalid move - number already exists in row, column, or box!'}
+          </div>
+        )}
+        
+        {!selectedCell && gameStatus === 'playing' && (
+          <div className="text-center text-muted-foreground text-sm mb-2">
+            Click on an empty cell to select it
+          </div>
+        )}
         
         {gameStatus === 'won' && (
           <div className="text-center text-green-600 font-semibold">
