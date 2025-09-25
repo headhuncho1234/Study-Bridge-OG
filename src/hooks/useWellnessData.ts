@@ -156,18 +156,21 @@ export const useWellnessData = () => {
     return newStreak;
   };
 
-  const addConsecutiveGame = (): number => {
-    const now = Date.now();
-    const lastGameTime = wellnessData.lastGameTime;
-    const timeDiff = lastGameTime ? now - lastGameTime : Infinity;
+  const addConsecutiveGame = (won: boolean = true): number => {
+    let newConsecutiveCount: number;
     
-    // Reset if more than 10 minutes between games
-    const newConsecutiveCount = timeDiff > 600000 ? 1 : (wellnessData.consecutiveGames || 0) + 1;
+    if (won) {
+      // Increment consecutive count on win
+      newConsecutiveCount = (wellnessData.consecutiveGames || 0) + 1;
+    } else {
+      // Reset consecutive count on loss
+      newConsecutiveCount = 0;
+    }
     
     setWellnessData(prev => ({
       ...prev,
       consecutiveGames: newConsecutiveCount,
-      lastGameTime: now
+      lastGameTime: Date.now()
     }));
     
     return newConsecutiveCount;

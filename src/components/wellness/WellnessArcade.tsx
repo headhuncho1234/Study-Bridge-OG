@@ -53,17 +53,30 @@ const WellnessArcade = () => {
     }
   ];
 
-  const handleGameComplete = (won: boolean) => {
+  const handleGameComplete = (won: boolean, completionTimeMs?: number) => {
+    let coinsEarned = 0;
+    let messages: string[] = [];
+    
     if (won) {
-      // Base reward
-      addCoins(1);
+      // Check if completed under 5 minutes (300,000 ms)
+      const completedUnder5Min = !completionTimeMs || completionTimeMs <= 300000;
       
-      // Track consecutive games
+      if (completedUnder5Min) {
+        addCoins(1);
+        coinsEarned += 1;
+        messages.push("🎯 +1 Coin (Completed under 5 minutes)");
+      } else {
+        messages.push("⏰ No coin - took longer than 5 minutes");
+      }
+      
+      // Track consecutive games and check for bonus
       const newConsecutiveCount = addConsecutiveGame();
       
-      // Bonus for 3 consecutive games
-      if (newConsecutiveCount >= 3 && newConsecutiveCount % 3 === 0) {
+      // Bonus for exactly 3 consecutive wins
+      if (newConsecutiveCount === 3) {
         addCoins(1);
+        coinsEarned += 1;
+        messages.push("🔥 +1 Bonus Coin (3 wins in a row!)");
         confetti({
           particleCount: 100,
           spread: 70,
@@ -74,13 +87,27 @@ const WellnessArcade = () => {
       // Update daily streak
       updateArcadeStreak();
       
+      // Show completion time if available
+      if (completionTimeMs) {
+        const minutes = Math.floor(completionTimeMs / 60000);
+        const seconds = Math.floor((completionTimeMs % 60000) / 1000);
+        messages.push(`⏱️ Completed in ${minutes}:${seconds.toString().padStart(2, '0')}`);
+      }
+      
       // Celebration confetti
       confetti({
         particleCount: 50,
         spread: 45,
         origin: { y: 0.7 }
       });
+    } else {
+      // Reset consecutive count on loss
+      addConsecutiveGame(false); // This will reset the count in the updated hook
+      messages.push("💪 Try again to start your winning streak!");
     }
+    
+    // Show feedback
+    console.log('Game Complete:', { won, coinsEarned, messages, completionTimeMs });
     
     // Auto-return to game selection after 3 seconds
     setTimeout(() => {

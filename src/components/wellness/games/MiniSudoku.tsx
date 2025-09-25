@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Trophy, RotateCcw, HelpCircle } from "lucide-react";
 
 interface MiniSudokuProps {
-  onGameComplete: (won: boolean) => void;
+  onGameComplete: (won: boolean, completionTimeMs?: number) => void;
   timeLimit?: number;
 }
 
@@ -16,6 +16,7 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const [gameStarted, setGameStarted] = useState(false);
+  const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [selectedCell, setSelectedCell] = useState<{row: number, col: number} | null>(null);
   const [invalidMove, setInvalidMove] = useState(false);
 
@@ -74,8 +75,9 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
+          const completionTime = Date.now() - gameStartTime;
           setGameStatus('lost');
-          onGameComplete(false);
+          onGameComplete(false, completionTime);
           return 0;
         }
         return prev - 1;
@@ -120,7 +122,10 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
   };
 
   const handleCellSelect = (row: number, col: number) => {
-    if (!gameStarted) setGameStarted(true);
+    if (!gameStarted) {
+      setGameStarted(true);
+      setGameStartTime(Date.now());
+    }
     if (gameStatus !== 'playing' || puzzle[row][col] !== null) return;
     
     setSelectedCell({ row, col });
@@ -153,8 +158,9 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
     setUserBoard(newBoard);
 
     if (checkSolution(newBoard)) {
+      const completionTime = Date.now() - gameStartTime;
       setGameStatus('won');
-      onGameComplete(true);
+      onGameComplete(true, completionTime);
     }
   };
 
@@ -163,6 +169,7 @@ const MiniSudoku = ({ onGameComplete, timeLimit = 300 }: MiniSudokuProps) => {
     setGameStatus('playing');
     setTimeLeft(timeLimit);
     setGameStarted(false);
+    setGameStartTime(Date.now());
     setSelectedCell(null);
     setInvalidMove(false);
   };
