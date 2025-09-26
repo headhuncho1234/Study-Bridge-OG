@@ -264,11 +264,13 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
               <div>
                 <div className="text-sm text-muted-foreground mb-2">Requirements:</div>
                 <div className="flex flex-wrap gap-1">
-                  {scholarship.requirements.map((req, idx) => (
+                  {scholarship.requirements?.map((req, idx) => (
                     <Badge key={idx} variant="outline" className="text-xs">
                       {req}
                     </Badge>
-                  ))}
+                  )) || (
+                    <span className="text-xs text-muted-foreground">No specific requirements listed</span>
+                  )}
                 </div>
               </div>
               
