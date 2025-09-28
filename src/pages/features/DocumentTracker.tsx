@@ -191,16 +191,6 @@ const DocumentTracker = () => {
             
             <Card className="text-center">
               <CardContent className="p-6">
-                <FileText className="h-8 w-8 text-secondary mx-auto mb-3" />
-                <h3 className="font-semibold mb-2">Document Templates</h3>
-                <p className="text-sm text-muted-foreground">
-                  Access templates and examples for required documents
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center">
-              <CardContent className="p-6">
                 <CheckCircle className="h-8 w-8 text-accent mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">Progress Tracking</h3>
                 <p className="text-sm text-muted-foreground">
@@ -241,20 +231,20 @@ const DocumentTracker = () => {
           </div>
         </div>
 
-        {/* CTA */}
-        <Card className="text-center bg-gradient-to-r from-primary/10 to-secondary/10">
-          <CardContent className="p-8">
-            <Search className="h-12 w-12 mx-auto mb-4 text-primary" />
-            <h3 className="text-xl font-bold mb-4">Ready to Get Organized?</h3>
-            <p className="text-muted-foreground mb-6">
-              Start tracking your documents today and take control of your application process. 
-              Never miss another deadline with our intelligent tracking system.
-            </p>
-            <Button size="lg" className="mr-4">
-              Start Tracking Documents
-            </Button>
-          </CardContent>
-        </Card>
+          {/* CTA */}
+          <Card className="text-center bg-gradient-to-r from-primary/10 to-secondary/10">
+            <CardContent className="p-8">
+              <Search className="h-12 w-12 mx-auto mb-4 text-primary" />
+              <h3 className="text-xl font-bold mb-4">Ready to Get Organized?</h3>
+              <p className="text-muted-foreground mb-6">
+                Start tracking your documents today and take control of your application process. 
+                Never miss another deadline with our intelligent tracking system.
+              </p>
+              <Button size="lg">
+                Start Tracking Documents
+              </Button>
+            </CardContent>
+          </Card>
       </div>
     </div>
   );

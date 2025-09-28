@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Calendar, MessageCircle, Heart, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
+import CommentSystem from "./CommentSystem";
+import DOMPurify from "dompurify";
 
 interface Profile {
   id: string;
@@ -106,6 +108,84 @@ const UserProfile = () => {
     }
   };
 
+  const formatContent = (htmlContent: string): string => {
+    // Sanitize HTML and strip tags while preserving line breaks
+    const sanitized = DOMPurify.sanitize(htmlContent, {
+      ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'strong', 'em', 'ul', 'ol', 'li'],
+      ALLOWED_ATTR: []
+    });
+    
+    // Create a temporary div to parse the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = sanitized;
+    
+    // Convert HTML to formatted text
+    let formattedText = tempDiv.textContent || tempDiv.innerText || '';
+    
+    // If there are paragraph tags, preserve paragraph breaks
+    if (sanitized.includes('<p>')) {
+      const paragraphs = sanitized.split(/<\/p>\s*<p[^>]*>/);
+      formattedText = paragraphs
+        .map(p => p.replace(/<[^>]+>/g, '').trim())
+        .filter(p => p.length > 0)
+        .join('\n\n');
+    } else {
+      // Replace <br> tags with line breaks
+      formattedText = sanitized.replace(/<br\s*\/?>/gi, '\n');
+      // Remove any remaining HTML tags
+      formattedText = formattedText.replace(/<[^>]+>/g, '');
+    }
+    
+    // Clean up extra whitespace while preserving intentional line breaks
+    formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+    
+    return formattedText;
+  };
+
+  const PostWithComments = ({ post }: { post: Post }) => {
+    const [showComments, setShowComments] = useState(false);
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">{post.title}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            in {post.channel} • {new Date(post.created_at).toLocaleDateString()}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="whitespace-pre-line mb-4 text-muted-foreground">
+            {formatContent(post.content)}
+          </div>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+            <div className="flex items-center gap-1">
+              <Heart className="h-4 w-4" />
+              {post.likes_count}
+            </div>
+            <div className="flex items-center gap-1">
+              <MessageCircle className="h-4 w-4" />
+              {post.comments_count}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowComments(!showComments)}
+              className="text-sm"
+            >
+              {showComments ? 'Hide' : 'Show'} Comments
+            </Button>
+          </div>
+          
+          {showComments && (
+            <div className="border-t pt-4">
+              <CommentSystem postId={post.id} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -202,29 +282,7 @@ const UserProfile = () => {
           <TabsContent value="posts" className="space-y-4">
             {posts.length > 0 ? (
               posts.map((post) => (
-                <Card key={post.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{post.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      in {post.channel} • {new Date(post.created_at).toLocaleDateString()}
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4 line-clamp-3">
-                      {post.content}
-                    </p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Heart className="h-4 w-4" />
-                        {post.likes_count}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageCircle className="h-4 w-4" />
-                        {post.comments_count}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <PostWithComments key={post.id} post={post} />
               ))
             ) : (
               <Card className="text-center py-8">
@@ -243,7 +301,7 @@ const UserProfile = () => {
                     <p className="text-sm text-muted-foreground mb-2">
                       Comment on: <strong>{comment.post_title}</strong>
                     </p>
-                    <p className="mb-2">{comment.content}</p>
+                    <div className="whitespace-pre-line mb-2">{formatContent(comment.content)}</div>
                     <p className="text-xs text-muted-foreground">
                       {new Date(comment.created_at).toLocaleDateString()}
                     </p>

@@ -3,6 +3,8 @@ import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import ChatBot from "@/components/ChatBot";
 import StudentIntake from "@/components/StudentIntake";
+import ChatAssistant from "@/components/ChatAssistant";
+import EnhancedResultsDisplay from "@/components/questionnaire/EnhancedResultsDisplay";
 
 const Index = () => {
   return (
@@ -23,6 +25,13 @@ const Index = () => {
         <div id="intake">
           <StudentIntake />
         </div>
+
+        {/* Enhanced Questionnaire Results */}
+        <section className="py-16 px-4">
+          <div className="max-w-6xl mx-auto">
+            <EnhancedResultsDisplay />
+          </div>
+        </section>
 
         {/* Contact & Support Section */}
         <section className="py-16 px-4 bg-muted/20">
@@ -67,6 +76,9 @@ const Index = () => {
           </div>
         </section>
       </main>
+      
+      {/* 24/7 Chat Assistant */}
+      <ChatAssistant />
       
       <footer className="bg-muted/30 py-12 px-4">
         <div className="max-w-6xl mx-auto text-center">

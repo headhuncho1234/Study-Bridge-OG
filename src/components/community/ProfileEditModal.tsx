@@ -5,98 +5,130 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Camera, Upload, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { Camera, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProfileEditModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onProfileUpdated?: () => void;
 }
 
-const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
-  const { profile, updateProfile, user } = useAuth();
+interface ProfileData {
+  display_name: string;
+  bio: string;
+  avatar_url: string;
+}
+
+const ProfileEditModal = ({ isOpen, onClose, onProfileUpdated }: ProfileEditModalProps) => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    username: '',
-    display_name: '',
-    bio: '',
-    avatar_url: ''
+  const [profileData, setProfileData] = useState<ProfileData>({
+    display_name: "",
+    bio: "",
+    avatar_url: ""
   });
 
   useEffect(() => {
-    if (profile) {
-      setFormData({
-        username: profile.username || '',
-        display_name: profile.display_name || '',
-        bio: profile.bio || '',
-        avatar_url: profile.avatar_url || ''
-      });
+    if (isOpen && user) {
+      loadProfile();
     }
-  }, [profile]);
+  }, [isOpen, user]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
-
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image smaller than 5MB.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please select an image file.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setUploading(true);
+  const loadProfile = async () => {
+    if (!user) return;
 
     try {
-      // Create unique filename
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('display_name, bio, avatar_url')
+        .eq('user_id', user.id)
+        .single();
 
-      // Upload file to Supabase storage
+      if (error) throw error;
+
+      if (profile) {
+        setProfileData({
+          display_name: profile.display_name || "",
+          bio: profile.bio || "",
+          avatar_url: profile.avatar_url || ""
+        });
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast({
+        title: "Error loading profile",
+        description: "Could not load your profile data.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+
+      const file = event.target.files[0];
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 5MB.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}/avatar.${fileExt}`;
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { 
-          cacheControl: '3600',
-          upsert: true 
-        });
+        .upload(fileName, file, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw uploadError;
+      }
 
-      // Get public URL
+      // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
-      // Update form data
-      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+      setProfileData(prev => ({
+        ...prev,
+        avatar_url: publicUrl
+      }));
 
       toast({
-        title: "Image uploaded!",
-        description: "Your avatar has been uploaded successfully."
+        title: "Success",
+        description: "Avatar uploaded successfully!"
       });
-    } catch (error: any) {
-      console.error('Upload error:', error);
+
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload image. Please try again.",
+        description: "Could not upload your avatar. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -104,35 +136,48 @@ const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSave = async () => {
+    if (!user) return;
 
     try {
-      const { error } = await updateProfile({
-        username: formData.username,
-        display_name: formData.display_name || null,
-        bio: formData.bio || null,
-        avatar_url: formData.avatar_url || null
-      });
+      setLoading(true);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: profileData.display_name.trim() || null,
+          bio: profileData.bio.trim() || null,
+          avatar_url: profileData.avatar_url || null
+        })
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
       toast({
-        title: "Profile updated!",
-        description: "Your profile has been successfully updated."
+        title: "Profile updated",
+        description: "Your profile has been updated successfully!"
       });
 
+      onProfileUpdated?.();
       onClose();
-    } catch (error: any) {
+
+    } catch (error) {
+      console.error('Error updating profile:', error);
       toast({
         title: "Update failed",
-        description: error.message,
+        description: "Could not update your profile. Please try again.",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const removeAvatar = () => {
+    setProfileData(prev => ({
+      ...prev,
+      avatar_url: ""
+    }));
   };
 
   return (
@@ -141,122 +186,117 @@ const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <div className="space-y-6">
           {/* Avatar Section */}
           <div className="flex flex-col items-center space-y-4">
             <div className="relative">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={formData.avatar_url} />
-                <AvatarFallback className="text-lg">
-                  {(formData.display_name || formData.username).charAt(0).toUpperCase()}
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={profileData.avatar_url} />
+                <AvatarFallback className="text-xl">
+                  {(profileData.display_name || user?.email || "U").charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <label 
-                htmlFor="avatar-upload"
-                className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0 cursor-pointer"
-              >
+              
+              {profileData.avatar_url && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                  onClick={removeAvatar}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Label htmlFor="avatar-upload" className="cursor-pointer">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="rounded-full h-8 w-8 p-0"
                   disabled={uploading}
                   asChild
                 >
                   <span>
                     {uploading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      <>
+                        <Upload className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
                     ) : (
-                      <Camera className="h-4 w-4" />
+                      <>
+                        <Camera className="h-4 w-4 mr-2" />
+                        {profileData.avatar_url ? 'Change' : 'Upload'} Avatar
+                      </>
                     )}
                   </span>
                 </Button>
-              </label>
-              <input
+              </Label>
+              <Input
                 id="avatar-upload"
                 type="file"
                 accept="image/*"
-                onChange={handleFileUpload}
+                onChange={handleAvatarUpload}
                 className="hidden"
+                disabled={uploading}
               />
             </div>
-            
-            <div className="space-y-2 w-full">
-              <Label htmlFor="avatar_url">Avatar URL (Optional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="avatar_url"
-                  type="url"
-                  value={formData.avatar_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
-                  placeholder="https://example.com/avatar.jpg"
-                  disabled={uploading}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById('avatar-upload')?.click()}
-                  disabled={uploading}
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  Upload
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Upload an image file or enter a URL. Max size: 5MB
+          </div>
+
+          {/* Form Fields */}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="display_name">Display Name</Label>
+              <Input
+                id="display_name"
+                value={profileData.display_name}
+                onChange={(e) => setProfileData(prev => ({
+                  ...prev,
+                  display_name: e.target.value
+                }))}
+                placeholder="Your display name"
+                maxLength={50}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={profileData.bio}
+                onChange={(e) => setProfileData(prev => ({
+                  ...prev,
+                  bio: e.target.value
+                }))}
+                placeholder="Tell us about yourself..."
+                maxLength={200}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {profileData.bio.length}/200 characters
               </p>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="username">Username *</Label>
-            <Input
-              id="username"
-              type="text"
-              value={formData.username}
-              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-              required
-              placeholder="Enter your username"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="display_name">Display Name</Label>
-            <Input
-              id="display_name"
-              type="text"
-              value={formData.display_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
-              placeholder="Enter your display name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              value={formData.bio}
-              onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-              placeholder="Tell us about yourself..."
-              rows={3}
-              maxLength={500}
-            />
-            <p className="text-xs text-muted-foreground">
-              {formData.bio.length}/500 characters
-            </p>
-          </div>
-
-          <div className="flex gap-2 pt-4">
-            <Button type="submit" disabled={loading || uploading} className="flex-1">
-              {loading ? "Saving..." : uploading ? "Uploading..." : "Save Changes"}
-            </Button>
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={loading}
+            >
               Cancel
             </Button>
+            <Button
+              onClick={handleSave}
+              disabled={loading || uploading}
+            >
+              {loading ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

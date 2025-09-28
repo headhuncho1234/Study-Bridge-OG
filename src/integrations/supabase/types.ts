@@ -244,6 +244,54 @@ export type Database = {
         }
         Relationships: []
       }
+      schools: {
+        Row: {
+          acceptance_rate: string | null
+          created_at: string
+          details: Json | null
+          difficulty: string | null
+          id: string
+          location: string | null
+          name: string
+          programs: string[] | null
+          ranking: string | null
+          scholarships: Json | null
+          tuition: number | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          acceptance_rate?: string | null
+          created_at?: string
+          details?: Json | null
+          difficulty?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          programs?: string[] | null
+          ranking?: string | null
+          scholarships?: Json | null
+          tuition?: number | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          acceptance_rate?: string | null
+          created_at?: string
+          details?: Json | null
+          difficulty?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          programs?: string[] | null
+          ranking?: string | null
+          scholarships?: Json | null
+          tuition?: number | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
