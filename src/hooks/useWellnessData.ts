@@ -127,10 +127,14 @@ export const useWellnessData = () => {
       if (error) throw error;
 
       if (data.awarded) {
+        // Optimistically update the state
         setWellnessData(prev => ({
           ...prev,
           coins: data.newTotal || (prev.coins + data.coinsAwarded)
         }));
+        
+        // Refresh data from database to ensure consistency
+        setTimeout(() => refreshData(), 500);
       }
 
       return data;
@@ -323,6 +327,40 @@ export const useWellnessData = () => {
     return badgeMap[badgeId];
   };
 
+  // Function to refresh data from database
+  const refreshData = async () => {
+    if (!user) return;
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('coins, questionnaire_results')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        const questionnaire_results = profile.questionnaire_results as any;
+        const savedWellnessData = questionnaire_results?.wellness || {};
+        
+        setWellnessData(prev => ({
+          ...prev,
+          coins: profile.coins || 0,
+          streak: savedWellnessData.streak || prev.streak,
+          lastSessionDate: savedWellnessData.lastSessionDate || prev.lastSessionDate,
+          badges: savedWellnessData.badges || prev.badges,
+          ownedItems: savedWellnessData.ownedItems || prev.ownedItems,
+          sessionsCompleted: savedWellnessData.sessionsCompleted || prev.sessionsCompleted,
+          arcadeStreak: savedWellnessData.arcadeStreak || prev.arcadeStreak,
+          lastArcadeDate: savedWellnessData.lastArcadeDate || prev.lastArcadeDate,
+          consecutiveGames: savedWellnessData.consecutiveGames || prev.consecutiveGames,
+          lastGameTime: savedWellnessData.lastGameTime || prev.lastGameTime
+        }));
+      }
+    } catch (error) {
+      console.error('Error refreshing wellness data:', error);
+    }
+  };
+
   return {
     wellnessData,
     addCoins,
@@ -332,6 +370,7 @@ export const useWellnessData = () => {
     addConsecutiveGame,
     purchaseItem,
     getBadgeInfo,
+    refreshData,
     isLoading
   };
 };

@@ -11,9 +11,13 @@ import MemoryMatch from "./games/MemoryMatch";
 import Checkers from "./games/Checkers";
 import confetti from 'canvas-confetti';
 
-const WellnessArcade = () => {
+interface WellnessArcadeProps {
+  onCoinsUpdated?: () => void;
+}
+
+const WellnessArcade = ({ onCoinsUpdated }: WellnessArcadeProps = {}) => {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
-  const { wellnessData, addCoins, updateArcadeStreak, addConsecutiveGame } = useWellnessData();
+  const { wellnessData, addCoins, updateArcadeStreak, addConsecutiveGame, refreshData } = useWellnessData();
 
   const games = [
     {
@@ -63,6 +67,9 @@ const WellnessArcade = () => {
         const newConsecutiveCount = addConsecutiveGame(true);
         updateArcadeStreak();
         
+        // Notify parent component of coin update
+        onCoinsUpdated?.();
+        
         // Show confetti for successful completion
         confetti({
           particleCount: 100,
@@ -70,7 +77,7 @@ const WellnessArcade = () => {
           origin: { y: 0.6 }
         });
         
-        console.log('Game Complete:', { won, coinsEarned: result.coinsAwarded, completionTimeMs });
+        console.log('Game Complete:', { won, coinsEarned: result.coinsAwarded, completionTimeMs, newTotal: result.newTotal });
       } else {
         console.log('Game Complete but no coins awarded:', result.reason);
       }

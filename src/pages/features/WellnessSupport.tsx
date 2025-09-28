@@ -16,7 +16,12 @@ const WellnessSupport = () => {
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   const [showHealthInsurance, setShowHealthInsurance] = useState(false);
   const [healthRecommendations, setHealthRecommendations] = useState(null);
-  const { wellnessData, addCoins, updateStreak, purchaseItem, updateArcadeStreak, addConsecutiveGame } = useWellnessData();
+  const { wellnessData, addCoins, updateStreak, purchaseItem, updateArcadeStreak, addConsecutiveGame, refreshData } = useWellnessData();
+
+  const handleCoinsUpdated = () => {
+    // Refresh wellness data when coins are updated in arcade
+    refreshData();
+  };
 
   const supportResources = [
     {
@@ -447,7 +452,7 @@ const WellnessSupport = () => {
             </TabsContent>
 
             <TabsContent value="arcade">
-              <WellnessArcade />
+              <WellnessArcade onCoinsUpdated={handleCoinsUpdated} />
             </TabsContent>
 
             <TabsContent value="rewards">
