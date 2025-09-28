@@ -76,7 +76,7 @@ const SchoolDetailModal = ({ school, isOpen, onClose }: SchoolDetailModalProps) 
   const renderScholarshipSection = (scholarships: SchoolScholarship[], title: string) => (
     <div className="space-y-4">
       <h4 className="font-semibold text-lg">{title}</h4>
-      {scholarships.map((scholarship, idx) => (
+      {(scholarships || []).map((scholarship, idx) => (
         <Card key={idx} className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-3">
             <div className="flex justify-between items-start">
@@ -298,7 +298,7 @@ const SchoolDetailModal = ({ school, isOpen, onClose }: SchoolDetailModalProps) 
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {school.requirements.map((req, idx) => (
+                  {(school.requirements || []).map((req, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-primary rounded-full"></span>
                       <span className="text-muted-foreground">{req}</span>
