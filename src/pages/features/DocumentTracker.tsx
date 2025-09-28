@@ -3,57 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Search, CheckCircle, Clock, AlertTriangle, FileText, Calendar } from "lucide-react";
+import { useDocumentTracker } from "@/hooks/useDocumentTracker";
 
 const DocumentTracker = () => {
-  const documentCategories = [
-    {
-      category: "Visa Documents",
-      total: 8,
-      completed: 6,
-      progress: 75,
-      color: "text-blue-600",
-      documents: [
-        { name: "Passport", status: "completed", dueDate: "N/A" },
-        { name: "I-20 Form", status: "completed", dueDate: "N/A" },
-        { name: "DS-160 Application", status: "completed", dueDate: "N/A" },
-        { name: "SEVIS Fee Receipt", status: "completed", dueDate: "N/A" },
-        { name: "Financial Statements", status: "completed", dueDate: "N/A" },
-        { name: "Visa Interview Appointment", status: "completed", dueDate: "N/A" },
-        { name: "Embassy Medical Exam", status: "pending", dueDate: "Dec 15, 2024" },
-        { name: "Visa Approval", status: "pending", dueDate: "Dec 30, 2024" }
-      ]
-    },
-    {
-      category: "University Application",
-      total: 6,
-      completed: 4,
-      progress: 67,
-      color: "text-green-600",
-      documents: [
-        { name: "Common Application", status: "completed", dueDate: "N/A" },
-        { name: "Academic Transcripts", status: "completed", dueDate: "N/A" },
-        { name: "Letters of Recommendation", status: "completed", dueDate: "N/A" },
-        { name: "Personal Statement", status: "completed", dueDate: "N/A" },
-        { name: "Application Fee Payment", status: "pending", dueDate: "Jan 1, 2025" },
-        { name: "Portfolio Submission", status: "overdue", dueDate: "Dec 1, 2024" }
-      ]
-    },
-    {
-      category: "Financial Aid",
-      total: 5,
-      completed: 2,
-      progress: 40,
-      color: "text-purple-600",
-      documents: [
-        { name: "FAFSA Application", status: "completed", dueDate: "N/A" },
-        { name: "CSS Profile", status: "completed", dueDate: "N/A" },
-        { name: "Tax Returns", status: "pending", dueDate: "Jan 15, 2025" },
-        { name: "Bank Statements", status: "pending", dueDate: "Jan 15, 2025" },
-        { name: "Scholarship Applications", status: "pending", dueDate: "Feb 1, 2025" }
-      ]
-    }
-  ];
+  const { documents, updateDocumentStatus, getStats, getCategoryStats } = useDocumentTracker();
+  const stats = getStats();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -118,25 +74,25 @@ const DocumentTracker = () => {
             
             <div className="grid md:grid-cols-4 gap-4 mb-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-200">19</div>
+                <div className="text-3xl font-bold text-yellow-200">{stats.total}</div>
                 <div className="text-sm text-white/80">Documents Tracked</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-200">12</div>
+                <div className="text-3xl font-bold text-yellow-200">{stats.completed}</div>
                 <div className="text-sm text-white/80">Completed</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-200">6</div>
+                <div className="text-3xl font-bold text-yellow-200">{stats.pending}</div>
                 <div className="text-sm text-white/80">Pending</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-200">1</div>
+                <div className="text-3xl font-bold text-yellow-200">{stats.overdue}</div>
                 <div className="text-sm text-white/80">Overdue</div>
               </div>
             </div>
             
-            <Button variant="secondary" size="lg" className="mt-4">
-              View My Dashboard
+            <Button size="lg" className="mt-4">
+              Get Document Templates
             </Button>
           </CardContent>
         </Card>
@@ -145,47 +101,66 @@ const DocumentTracker = () => {
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-6 text-center">Your Document Progress</h2>
           <div className="space-y-6">
-            {documentCategories.map((category, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl">{category.category}</CardTitle>
-                      <p className="text-muted-foreground">
-                        {category.completed} of {category.total} documents completed
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${category.color}`}>
-                        {category.progress}%
+            {documents.map((category, index) => {
+              const categoryStats = getCategoryStats(category.category);
+              const getColor = (categoryName: string) => {
+                switch(categoryName) {
+                  case "Visa Documents": return "text-blue-600";
+                  case "University Application": return "text-green-600";
+                  case "Financial Aid": return "text-purple-600";
+                  default: return "text-primary";
+                }
+              };
+              
+              return (
+                <Card key={index} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-xl">{category.category}</CardTitle>
+                        <p className="text-muted-foreground">
+                          {categoryStats.completed} of {categoryStats.total} documents completed
+                        </p>
                       </div>
-                      <Progress value={category.progress} className="w-20 mt-1" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {category.documents.map((doc, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                        <div className="flex items-center gap-3">
-                          {getStatusIcon(doc.status)}
-                          <span className="font-medium">{doc.name}</span>
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${getColor(category.category)}`}>
+                          {categoryStats.progress}%
                         </div>
-                        <div className="flex items-center gap-3">
-                          {doc.dueDate !== "N/A" && (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Calendar className="h-3 w-3" />
-                              {doc.dueDate}
-                            </div>
-                          )}
-                          {getStatusBadge(doc.status)}
-                        </div>
+                        <Progress value={categoryStats.progress} className="w-20 mt-1" />
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {category.documents.map((doc, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                          <div className="flex items-center gap-3">
+                            <Checkbox 
+                              checked={doc.status === 'completed'}
+                              onCheckedChange={(checked) => {
+                                const newStatus = checked ? 'completed' : 'pending';
+                                updateDocumentStatus(doc.id, newStatus);
+                              }}
+                            />
+                            {getStatusIcon(doc.status)}
+                            <span className="font-medium">{doc.name}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {doc.dueDate !== "N/A" && (
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Calendar className="h-3 w-3" />
+                                {doc.dueDate}
+                              </div>
+                            )}
+                            {getStatusBadge(doc.status)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
 

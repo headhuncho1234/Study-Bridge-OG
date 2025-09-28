@@ -3,15 +3,19 @@ import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Heart, Phone, MessageCircle, Users, Brain, Smile, Trophy, Gamepad2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, Heart, Phone, MessageCircle, Users, Brain, Smile, Trophy, Gamepad2, ShoppingBag, BookOpen, Globe, Shield } from "lucide-react";
 import FocusQuest from "@/components/wellness/FocusQuest";
 import SupportQuestionnaire from "@/components/wellness/SupportQuestionnaire";
 import WellnessRewards from "@/components/wellness/WellnessRewards";
 import WellnessArcade from "@/components/wellness/WellnessArcade";
+import HealthInsuranceQuestionnaire from "@/components/wellness/HealthInsuranceQuestionnaire";
 import { useWellnessData } from "@/hooks/useWellnessData";
 
 const WellnessSupport = () => {
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [showHealthInsurance, setShowHealthInsurance] = useState(false);
+  const [healthRecommendations, setHealthRecommendations] = useState(null);
   const { wellnessData, addCoins, updateStreak, purchaseItem, updateArcadeStreak, addConsecutiveGame } = useWellnessData();
 
   const supportResources = [
@@ -77,6 +81,43 @@ const WellnessSupport = () => {
           </div>
         </div>
 
+        {/* Priority Action Buttons */}
+        <div className="mb-8 grid md:grid-cols-2 gap-4">
+          <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white hover:shadow-lg transition-shadow cursor-pointer">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <Heart className="h-8 w-8" />
+                <div>
+                  <h3 className="text-xl font-bold mb-1">Get Support Now</h3>
+                  <p className="text-white/90 text-sm">Immediate mental health resources and crisis support</p>
+                </div>
+              </div>
+              <Button 
+                variant="secondary" 
+                className="mt-4 w-full"
+                onClick={() => setShowQuestionnaire(true)}
+              >
+                Access Support Resources
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:shadow-lg transition-shadow cursor-pointer">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <ShoppingBag className="h-8 w-8" />
+                <div>
+                  <h3 className="text-xl font-bold mb-1">Shop Wellness Items</h3>
+                  <p className="text-white/90 text-sm">Books, apparel, and wellness products from trusted vendors</p>
+                </div>
+              </div>
+              <Button variant="secondary" className="mt-4 w-full">
+                Browse Wellness Shop
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Hero Section */}
         <Card className="mb-8 bg-gradient-to-r from-pink-500 to-rose-400 text-white">
           <CardContent className="p-8">
@@ -129,8 +170,9 @@ const WellnessSupport = () => {
         {/* Wellness Tabs */}
         <div className="mb-12">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="research">Research & Reports</TabsTrigger>
               <TabsTrigger value="focus-quest" className="flex items-center gap-2">
                 <Gamepad2 className="h-4 w-4" />
                 Focus Quest
@@ -311,11 +353,85 @@ const WellnessSupport = () => {
                   >
                     Connect with Support
                   </Button>
+                  <Button variant="outline" onClick={() => setShowHealthInsurance(true)} className="mr-4">
+                    Health Insurance Guide
+                  </Button>
                   <Link to="/community?channel=wellness">
                     <Button variant="outline" size="lg">
                       Join Peer Groups
                     </Button>
                   </Link>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="research" className="space-y-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                      Mental Health Research
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Latest research on international student mental health and wellness strategies.
+                    </p>
+                    <Button variant="outline" size="sm">View Studies</Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="h-5 w-5 text-secondary" />
+                      Global Wellness Reports
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Comprehensive reports on wellness trends and best practices worldwide.
+                    </p>
+                    <Button variant="outline" size="sm">Access Reports</Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-accent" />
+                      Evidence-Based Resources
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Scientifically-backed wellness techniques and interventions.
+                    </p>
+                    <Button variant="outline" size="sm">Explore Resources</Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Research Highlights</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="border-l-4 border-primary pl-4">
+                      <h4 className="font-semibold">Impact of Social Support on International Student Success</h4>
+                      <p className="text-sm text-muted-foreground">A comprehensive study showing 78% improvement in academic performance with adequate social support systems.</p>
+                    </div>
+                    <div className="border-l-4 border-secondary pl-4">
+                      <h4 className="font-semibold">Mindfulness Practices for Academic Stress Reduction</h4>
+                      <p className="text-sm text-muted-foreground">Research demonstrates 65% reduction in stress levels through regular mindfulness practice.</p>
+                    </div>
+                    <div className="border-l-4 border-accent pl-4">
+                      <h4 className="font-semibold">Cultural Adaptation and Mental Health Outcomes</h4>
+                      <p className="text-sm text-muted-foreground">Key factors in successful cultural adaptation and their correlation with mental wellness.</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -340,6 +456,75 @@ const WellnessSupport = () => {
             </TabsContent>
           </Tabs>
         </div>
+
+        {/* Health Insurance Dialog */}
+        <Dialog open={showHealthInsurance} onOpenChange={setShowHealthInsurance}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Health Insurance Guidance</DialogTitle>
+            </DialogHeader>
+            {!healthRecommendations ? (
+              <HealthInsuranceQuestionnaire 
+                onComplete={(recommendations) => {
+                  setHealthRecommendations(recommendations);
+                }}
+                onCancel={() => setShowHealthInsurance(false)}
+              />
+            ) : (
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold">Recommended Health Insurance Plans</h3>
+                <div className="grid gap-4">
+                  {healthRecommendations.plans.map((plan, index) => (
+                    <Card key={index}>
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-semibold text-lg">{plan.name}</h4>
+                            <p className="text-muted-foreground">{plan.provider}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-primary">{plan.monthly}</div>
+                            <div className="text-sm text-muted-foreground">per month</div>
+                          </div>
+                        </div>
+                        <div className="space-y-2 mb-4">
+                          {plan.coverage.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-sm">
+                              <Shield className="h-3 w-3 text-green-600" />
+                              {item}
+                            </div>
+                          ))}
+                        </div>
+                        <Button asChild>
+                          <a href={plan.link} target="_blank" rel="noopener noreferrer">
+                            View Plan Details
+                          </a>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                {healthRecommendations.eligibleForSubsidy && (
+                  <Card className="bg-green-50 border-green-200">
+                    <CardContent className="p-4">
+                      <p className="text-green-800">
+                        💡 You may be eligible for premium subsidies. Visit Healthcare.gov to check your eligibility.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                <div className="flex gap-2">
+                  <Button onClick={() => setHealthRecommendations(null)}>
+                    Retake Assessment
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowHealthInsurance(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -1,10 +1,21 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, DollarSign, Award, Search, Users } from "lucide-react";
+import ScholarshipFilters, { ScholarshipFilters as FilterType } from "@/components/scholarships/ScholarshipFilters";
 
 const ScholarshipDatabase = () => {
+  const [filters, setFilters] = useState<FilterType>({
+    searchQuery: "",
+    fieldOfStudy: "",
+    country: "",
+    amountRange: [0, 50000],
+    deadline: "",
+    gpaRequirement: "",
+    scholarshipType: ""
+  });
   const scholarshipTypes = [
     {
       title: "Merit-Based Scholarships",
@@ -90,32 +101,51 @@ const ScholarshipDatabase = () => {
           </CardContent>
         </Card>
 
-        {/* Scholarship Types */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold mb-6 text-center">Types of Scholarships Available</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {scholarshipTypes.map((type, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{type.title}</CardTitle>
-                    <Badge variant="secondary">{type.range}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">{type.description}</p>
-                  <div className="space-y-2">
-                    <p className="font-medium text-sm">Examples:</p>
-                    {type.examples.map((example, idx) => (
-                      <p key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
-                        <Award className="h-3 w-3" />
-                        {example}
-                      </p>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        {/* Search and Filter Section */}
+        <div className="grid lg:grid-cols-4 gap-6 mb-12">
+          <div className="lg:col-span-1">
+            <ScholarshipFilters onFiltersChange={setFilters} />
+          </div>
+          
+          <div className="lg:col-span-3">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-4">Available Scholarships</h2>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-muted-foreground">Showing scholarships based on your criteria</p>
+                <Button variant="outline" size="sm">
+                  Save Search
+                </Button>
+              </div>
+            </div>
+
+            {/* Scholarship Types */}
+            <div className="space-y-4">
+              {scholarshipTypes.map((type, index) => (
+                <Card key={index} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{type.title}</CardTitle>
+                      <div className="flex gap-2">
+                        <Badge variant="secondary">{type.range}</Badge>
+                        <Button size="sm">Apply Now</Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4">{type.description}</p>
+                    <div className="space-y-2">
+                      <p className="font-medium text-sm">Examples:</p>
+                      {type.examples.map((example, idx) => (
+                        <p key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Award className="h-3 w-3" />
+                          {example}
+                        </p>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
 

@@ -2,39 +2,12 @@ import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, FileText, CheckCircle, Clock, Users } from "lucide-react";
+import { useVisaTracker } from "@/hooks/useVisaTracker";
 
 const VisaGuidance = () => {
-  const visaSteps = [
-    {
-      step: 1,
-      title: "Document Preparation",
-      description: "Gather required documents with our comprehensive checklist",
-      duration: "2-4 weeks",
-      items: ["I-20 Form", "Passport", "Financial Statements", "Academic Transcripts"]
-    },
-    {
-      step: 2,
-      title: "DS-160 Application",
-      description: "Complete the online visa application with guided assistance",
-      duration: "1-2 hours",
-      items: ["Personal Information", "Travel Plans", "Background Questions", "Photo Upload"]
-    },
-    {
-      step: 3,
-      title: "Fee Payment & Scheduling",
-      description: "Pay visa fees and schedule your embassy appointment",
-      duration: "1-3 weeks",
-      items: ["SEVIS Fee", "Visa Application Fee", "Embassy Appointment", "Document Review"]
-    },
-    {
-      step: 4,
-      title: "Interview Preparation",
-      description: "Practice with our AI-powered interview simulator",
-      duration: "1 week",
-      items: ["Common Questions", "Practice Sessions", "Mock Interviews", "Success Tips"]
-    }
-  ];
+  const { visaTasks, updateTaskCompletion, getTaskProgress, getOverallProgress } = useVisaTracker();
 
   const interviewTips = [
     "Be honest and confident in your responses",
@@ -82,8 +55,8 @@ const VisaGuidance = () => {
             
             <div className="grid md:grid-cols-3 gap-4 mb-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary">98%</div>
-                <div className="text-sm text-white/80">Success Rate</div>
+                <div className="text-3xl font-bold text-primary">{getOverallProgress()}%</div>
+                <div className="text-sm text-white/80">Overall Progress</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-primary">50+</div>
@@ -107,30 +80,38 @@ const VisaGuidance = () => {
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-6 text-center">Your Visa Journey in 4 Steps</h2>
           <div className="grid md:grid-cols-2 gap-6">
-            {visaSteps.map((step, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
+            {visaTasks.map((task, index) => (
+              <Card key={task.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold">
-                        {step.step}
+                        {index + 1}
                       </div>
-                      <CardTitle className="text-lg">{step.title}</CardTitle>
+                      <CardTitle className="text-lg">{task.title}</CardTitle>
                     </div>
                     <Badge variant="outline">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {step.duration}
+                      <div className="flex items-center gap-1">
+                        <div className="text-primary font-bold">{getTaskProgress(task.id)}%</div>
+                      </div>
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground mb-4">{step.description}</p>
-                  <div className="space-y-2">
-                    {step.items.map((item, idx) => (
-                      <p key={idx} className="text-sm flex items-center gap-2">
-                        <CheckCircle className="h-3 w-3 text-primary" />
-                        {item}
-                      </p>
+                  <div className="space-y-3">
+                    {task.items.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <Checkbox 
+                          checked={task.completed[idx]}
+                          onCheckedChange={(checked) => updateTaskCompletion(task.id, idx, !!checked)}
+                        />
+                        <span className={`text-sm ${task.completed[idx] ? 'line-through text-muted-foreground' : ''}`}>
+                          {item}
+                        </span>
+                        {task.completed[idx] && (
+                          <CheckCircle className="h-3 w-3 text-green-600 ml-auto" />
+                        )}
+                      </div>
                     ))}
                   </div>
                 </CardContent>
