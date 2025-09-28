@@ -111,13 +111,32 @@ const Community = () => {
       .on(
         'postgres_changes',
         { 
-          event: '*', 
+          event: 'INSERT', 
           schema: 'public', 
           table: 'community_posts' 
         },
         (payload) => {
-          console.log('Post change received:', payload);
-          loadPosts(); // Reload posts when changes occur
+          console.log('New post added:', payload);
+          loadPosts(); // Reload only for new posts
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'community_posts' 
+        },
+        (payload) => {
+          console.log('Post updated:', payload);
+          // Update specific post instead of reloading all
+          setPosts(prevPosts => 
+            prevPosts.map(post => 
+              post.id === payload.new.id 
+                ? { ...post, likes: payload.new.likes_count || 0, dislikes: payload.new.dislikes_count || 0, comments: payload.new.comments_count || 0 }
+                : post
+            )
+          );
         }
       )
       .subscribe();
