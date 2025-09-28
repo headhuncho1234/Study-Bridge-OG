@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Camera } from "lucide-react";
+import { Camera, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -15,9 +16,10 @@ interface ProfileEditModalProps {
 }
 
 const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
-  const { profile, updateProfile } = useAuth();
+  const { profile, updateProfile, user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   
   const [formData, setFormData] = useState({
     username: '',
@@ -36,6 +38,71 @@ const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
       });
     }
   }, [profile]);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+
+      // Upload file to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { 
+          cacheControl: '3600',
+          upsert: true 
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update form data
+      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+
+      toast({
+        title: "Image uploaded!",
+        description: "Your avatar has been uploaded successfully."
+      });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload image. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,25 +152,61 @@ const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
                   {(formData.display_name || formData.username).charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
+              <label 
+                htmlFor="avatar-upload"
+                className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0 cursor-pointer"
               >
-                <Camera className="h-4 w-4" />
-              </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full h-8 w-8 p-0"
+                  disabled={uploading}
+                  asChild
+                >
+                  <span>
+                    {uploading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </span>
+                </Button>
+              </label>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
             </div>
             
             <div className="space-y-2 w-full">
               <Label htmlFor="avatar_url">Avatar URL (Optional)</Label>
-              <Input
-                id="avatar_url"
-                type="url"
-                value={formData.avatar_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
-                placeholder="https://example.com/avatar.jpg"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="avatar_url"
+                  type="url"
+                  value={formData.avatar_url}
+                  onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
+                  placeholder="https://example.com/avatar.jpg"
+                  disabled={uploading}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('avatar-upload')?.click()}
+                  disabled={uploading}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Upload
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Upload an image file or enter a URL. Max size: 5MB
+              </p>
             </div>
           </div>
 
@@ -146,8 +249,8 @@ const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? "Saving..." : "Save Changes"}
+            <Button type="submit" disabled={loading || uploading} className="flex-1">
+              {loading ? "Saving..." : uploading ? "Uploading..." : "Save Changes"}
             </Button>
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel

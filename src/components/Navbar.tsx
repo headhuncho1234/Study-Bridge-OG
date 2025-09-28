@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Menu, User, LogOut, BookOpen, GraduationCap, Plane, Home as HomeIcon, Users, Heart, FileCheck, Bot, Globe, MessageCircle, X } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +65,7 @@ const features = [
 const Navbar = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
 
@@ -133,6 +134,9 @@ const Navbar = () => {
             <Link to="/community" className="text-muted-foreground hover:text-foreground transition-smooth">
               Community
             </Link>
+            <Link to="/profile" className="text-muted-foreground hover:text-foreground transition-smooth">
+              Profile
+            </Link>
             <Link to="/profile/saved" className={`text-muted-foreground hover:text-foreground transition-smooth ${location.pathname === '/profile/saved' ? 'text-foreground font-medium' : ''}`}>
               My Results
             </Link>
@@ -142,10 +146,15 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4" />
-                  <span>Welcome, {user.email?.split('@')[0]}</span>
-                </div>
+                <Link to="/profile" className="flex items-center gap-2 text-sm hover:text-primary transition-smooth">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={profile?.avatar_url || ''} />
+                    <AvatarFallback className="text-xs">
+                      {(profile?.display_name || profile?.username || user.email?.split('@')[0] || 'U').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{profile?.display_name || profile?.username || user.email?.split('@')[0]}</span>
+                </Link>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -201,6 +210,14 @@ const Navbar = () => {
                 <span>Community</span>
               </Link>
               <Link
+                to="/profile"
+                className="flex items-center space-x-2 px-4 py-2 text-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <User className="h-4 w-4" />
+                <span>Profile</span>
+              </Link>
+              <Link
                 to="/profile/saved"
                 className={`flex items-center space-x-2 px-4 py-2 text-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors ${location.pathname === '/profile/saved' ? 'bg-muted/50 text-primary' : ''}`}
                 onClick={() => setIsOpen(false)}
@@ -212,8 +229,13 @@ const Navbar = () => {
                 {user ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 px-4 py-2 text-sm">
-                      <User className="h-4 w-4" />
-                      <span>Welcome, {user.email?.split('@')[0]}</span>
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={profile?.avatar_url || ''} />
+                        <AvatarFallback className="text-xs">
+                          {(profile?.display_name || profile?.username || user.email?.split('@')[0] || 'U').charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>Welcome, {profile?.display_name || profile?.username || user.email?.split('@')[0]}</span>
                     </div>
                     <Button 
                       variant="outline"

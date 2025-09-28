@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Results from "./pages/Results";
 import Community from "./pages/Community";
 import Profile from "./pages/Profile";
+import MyProfile from "./pages/MyProfile";
 import SavedResults from "./pages/SavedResults";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/results" element={<Results />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/profile" element={<MyProfile />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/profile/saved" element={<SavedResults />} />
           <Route path="/dashboard" element={<Dashboard />} />
