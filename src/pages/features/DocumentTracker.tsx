@@ -105,11 +105,6 @@ const DocumentTracker = () => {
               </div>
             </div>
             
-            <div className="flex gap-4">
-              <Button size="lg" disabled>
-                Document Templates (Coming Soon)
-              </Button>
-            </div>
           </CardContent>
         </Card>
 

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Calendar, MessageCircle, Heart } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Calendar, MessageCircle, Heart, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 
@@ -15,6 +16,7 @@ interface Profile {
   avatar_url?: string;
   bio?: string;
   created_at: string;
+  coins?: number;
 }
 
 interface Post {
@@ -170,7 +172,7 @@ const UserProfile = () => {
                   <p className="text-foreground mb-4">{profile.bio}</p>
                 )}
                 
-                <div className="flex items-center justify-center md:justify-start gap-6 text-sm text-muted-foreground">
+                <div className="flex items-center justify-center md:justify-start gap-6 text-sm text-muted-foreground mb-4">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     Joined {new Date(profile.created_at).toLocaleDateString()}
@@ -178,6 +180,13 @@ const UserProfile = () => {
                   <div>{posts.length} Posts</div>
                   <div>{comments.length} Comments</div>
                 </div>
+                
+                {profile.coins !== undefined && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Coins className="h-3 w-3" />
+                    {profile.coins} Wellness Coins
+                  </Badge>
+                )}
               </div>
             </div>
           </CardContent>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Heart, MessageCircle, Share2, Home, GraduationCap, Heart as WellnessIcon, DollarSign, FileText, Briefcase, ThumbsDown, Eye, TrendingUp, Settings, User } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Plus, Heart, MessageCircle, Share2, Home, GraduationCap, Heart as WellnessIcon, DollarSign, FileText, Briefcase, ThumbsDown, Eye, TrendingUp, Settings, User, Users } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import DOMPurify from "dompurify";
 import CommentSystem from "@/components/community/CommentSystem";
@@ -96,6 +97,7 @@ const Community = () => {
   const channels = [
     { id: 'general', name: 'General Student Life', icon: <Home className="h-4 w-4" /> },
     { id: 'housing', name: 'Housing', icon: <GraduationCap className="h-4 w-4" /> },
+    { id: 'roommates', name: 'Roommates', icon: <Users className="h-4 w-4" /> },
     { id: 'wellness', name: 'Wellness', icon: <WellnessIcon className="h-4 w-4" /> },
     { id: 'scholarships', name: 'Scholarships', icon: <DollarSign className="h-4 w-4" /> },
     { id: 'visa', name: 'Visa', icon: <FileText className="h-4 w-4" /> },
@@ -402,7 +404,7 @@ const Community = () => {
 
         {/* Channel Navigation */}
         <Tabs value={activeChannel} onValueChange={handleChannelChange} className="mb-8">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-7">
             {channels.map((channel) => (
               <TabsTrigger 
                 key={channel.id} 

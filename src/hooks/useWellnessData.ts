@@ -48,14 +48,27 @@ export const useWellnessData = () => {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('coins')
+          .select('coins, questionnaire_results')
           .eq('user_id', user.id)
           .single();
 
         if (profile) {
+          // Parse wellness data from questionnaire_results JSON
+          const questionnaire_results = profile.questionnaire_results as any;
+          const savedWellnessData = questionnaire_results?.wellness || {};
+          
           setWellnessData(prev => ({
             ...prev,
-            coins: profile.coins || 0
+            coins: profile.coins || 0,
+            streak: savedWellnessData.streak || 0,
+            lastSessionDate: savedWellnessData.lastSessionDate || null,
+            badges: savedWellnessData.badges || [],
+            ownedItems: savedWellnessData.ownedItems || [],
+            sessionsCompleted: savedWellnessData.sessionsCompleted || 0,
+            arcadeStreak: savedWellnessData.arcadeStreak || 0,
+            lastArcadeDate: savedWellnessData.lastArcadeDate || null,
+            consecutiveGames: savedWellnessData.consecutiveGames || 0,
+            lastGameTime: savedWellnessData.lastGameTime || null
           }));
         }
       } catch (error) {
@@ -68,6 +81,41 @@ export const useWellnessData = () => {
     loadWellnessData();
   }, [user]);
 
+  // Helper function to save wellness data to database
+  const saveWellnessData = async (updatedData: Partial<WellnessData>) => {
+    if (!user) return;
+
+    try {
+      // Get current questionnaire_results
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('questionnaire_results')
+        .eq('user_id', user.id)
+        .single();
+
+      const currentResults = (profile?.questionnaire_results as any) || {};
+      const currentWellness = currentResults.wellness || {};
+
+      // Merge with updated wellness data (excluding coins which has its own column)
+      const { coins, ...wellnessDataWithoutCoins } = updatedData;
+      const updatedWellnessData = {
+        ...currentWellness,
+        ...wellnessDataWithoutCoins
+      };
+
+      const updatedResults = {
+        ...currentResults,
+        wellness: updatedWellnessData
+      };
+
+      await supabase
+        .from('profiles')
+        .update({ questionnaire_results: updatedResults })
+        .eq('user_id', user.id);
+    } catch (error) {
+      console.error('Error saving wellness data:', error);
+    }
+  };
   const addCoins = async (gameType: string, completionTimeMs: number, won: boolean = true) => {
     if (!user) return { awarded: false, reason: 'Not authenticated' };
 
@@ -92,18 +140,33 @@ export const useWellnessData = () => {
     }
   };
 
-  const spendCoins = (amount: number): boolean => {
+  const spendCoins = async (amount: number): Promise<boolean> => {
     if (wellnessData.coins >= amount) {
-      setWellnessData(prev => ({
-        ...prev,
-        coins: prev.coins - amount
-      }));
+      const newWellnessData = {
+        ...wellnessData,
+        coins: wellnessData.coins - amount
+      };
+      
+      setWellnessData(newWellnessData);
+      
+      // Update coins in database
+      if (user) {
+        try {
+          await supabase
+            .from('profiles')
+            .update({ coins: newWellnessData.coins })
+            .eq('user_id', user.id);
+        } catch (error) {
+          console.error('Error updating coins:', error);
+        }
+      }
+      
       return true;
     }
     return false;
   };
 
-  const updateStreak = () => {
+  const updateStreak = async () => {
     const today = new Date().toDateString();
     const lastDate = wellnessData.lastSessionDate;
     
@@ -141,29 +204,35 @@ export const useWellnessData = () => {
       newBadges.push('focus-champion');
     }
     
-    setWellnessData(prev => ({
-      ...prev,
+    const updatedData = {
+      ...wellnessData,
       streak: newStreak,
       lastSessionDate: today,
       badges: newBadges,
-      sessionsCompleted: prev.sessionsCompleted + 1
-    }));
+      sessionsCompleted: wellnessData.sessionsCompleted + 1
+    };
+    
+    setWellnessData(updatedData);
+    await saveWellnessData(updatedData);
     
     return newStreak;
   };
 
-  const purchaseItem = (itemId: string, cost: number): boolean => {
-    if (spendCoins(cost)) {
-      setWellnessData(prev => ({
-        ...prev,
-        ownedItems: [...prev.ownedItems, itemId]
-      }));
+  const purchaseItem = async (itemId: string, cost: number): Promise<boolean> => {
+    if (await spendCoins(cost)) {
+      const updatedData = {
+        ...wellnessData,
+        ownedItems: [...wellnessData.ownedItems, itemId]
+      };
+      
+      setWellnessData(updatedData);
+      await saveWellnessData(updatedData);
       return true;
     }
     return false;
   };
 
-  const updateArcadeStreak = () => {
+  const updateArcadeStreak = async () => {
     const today = new Date().toDateString();
     const lastDate = wellnessData.lastArcadeDate;
     
@@ -197,17 +266,20 @@ export const useWellnessData = () => {
       newBadges.push('focus-champion');
     }
     
-    setWellnessData(prev => ({
-      ...prev,
+    const updatedData = {
+      ...wellnessData,
       arcadeStreak: newStreak,
       lastArcadeDate: today,
       badges: newBadges
-    }));
+    };
+    
+    setWellnessData(updatedData);
+    await saveWellnessData(updatedData);
     
     return newStreak;
   };
 
-  const addConsecutiveGame = (won: boolean = true): number => {
+  const addConsecutiveGame = async (won: boolean = true): Promise<number> => {
     let newConsecutiveCount: number;
     
     if (won) {
@@ -218,11 +290,14 @@ export const useWellnessData = () => {
       newConsecutiveCount = 0;
     }
     
-    setWellnessData(prev => ({
-      ...prev,
+    const updatedData = {
+      ...wellnessData,
       consecutiveGames: newConsecutiveCount,
       lastGameTime: Date.now()
-    }));
+    };
+    
+    setWellnessData(updatedData);
+    await saveWellnessData(updatedData);
     
     return newConsecutiveCount;
   };

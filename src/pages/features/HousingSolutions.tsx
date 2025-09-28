@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, Home, Users, DollarSign, Star, Shield } from "lucide-react";
+import RoommateQuestionnaire from "@/components/housing/RoommateQuestionnaire";
 
 const HousingSolutions = () => {
+  const [isRoommateModalOpen, setIsRoommateModalOpen] = useState(false);
   const housingTypes = [
     {
       type: "On-Campus Housing",
@@ -117,10 +120,13 @@ const HousingSolutions = () => {
             </div>
             
             <Link to="/questionnaires/housing">
-              <Button variant="secondary" size="lg" className="mt-4">
+              <Button variant="secondary" size="lg" className="mt-4 mr-4">
                 Start Housing Search
               </Button>
             </Link>
+            <Button variant="outline" size="lg" className="mt-4" onClick={() => setIsRoommateModalOpen(true)}>
+              Find Roommates
+            </Button>
           </CardContent>
         </Card>
 
@@ -263,6 +269,9 @@ const HousingSolutions = () => {
                 Start Housing Search
               </Button>
             </Link>
+            <Button variant="outline" size="lg" className="mr-4" onClick={() => setIsRoommateModalOpen(true)}>
+              Find Roommates
+            </Button>
             <Link to="/community?channel=housing">
               <Button variant="outline" size="lg">
                 Housing Reviews
@@ -270,6 +279,11 @@ const HousingSolutions = () => {
             </Link>
           </CardContent>
         </Card>
+        
+        <RoommateQuestionnaire 
+          isOpen={isRoommateModalOpen}
+          onClose={() => setIsRoommateModalOpen(false)}
+        />
       </div>
     </div>
   );
