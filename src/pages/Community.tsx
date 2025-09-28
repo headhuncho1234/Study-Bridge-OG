@@ -155,16 +155,14 @@ const Community = () => {
 
   const loadPosts = async () => {
     try {
-      const { data, error } = await supabase
+      // Step 1: Fetch all community posts without joins
+      const { data: postsData, error: postsError } = await supabase
         .from('community_posts')
-        .select(`
-          *,
-          profiles(username, display_name, avatar_url)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error loading posts:', error);
+      if (postsError) {
+        console.error('Error loading posts:', postsError);
         toast({
           title: "Connection Error",
           description: "Unable to load posts. Please check your internet connection and try again.",
@@ -174,22 +172,53 @@ const Community = () => {
         return;
       }
 
-      const formattedPosts = data?.map(post => ({
-        id: post.id,
-        title: post.title,
-        content: post.content,
-        user_id: post.user_id,
-        author: (post as any).profiles?.display_name || (post as any).profiles?.username || 'Anonymous User',
-        authorAvatar: (post as any).profiles?.avatar_url || '',
-        date: new Date(post.created_at).toLocaleDateString(),
-        likes: post.likes_count || 0,
-        dislikes: post.dislikes_count || 0,
-        comments: post.comments_count || 0,
-        tags: [],
-        images: post.images || [],
-        channel: post.channel || 'general',
-        profile: (post as any).profiles
-      })) || [];
+      if (!postsData || postsData.length === 0) {
+        setPosts([]);
+        return;
+      }
+
+      // Step 2: Get unique user IDs from posts
+      const userIds = [...new Set(postsData.map(post => post.user_id))];
+
+      // Step 3: Fetch profiles for those users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, username, display_name, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesError) {
+        console.error('Error loading profiles:', profilesError);
+        // Continue without profiles data instead of failing completely
+      }
+
+      // Step 4: Create a map of profiles by user_id for quick lookup
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          profilesMap.set(profile.user_id, profile);
+        });
+      }
+
+      // Step 5: Combine posts with their corresponding profiles
+      const formattedPosts = postsData.map(post => {
+        const profile = profilesMap.get(post.user_id);
+        return {
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          user_id: post.user_id,
+          author: profile?.display_name || profile?.username || 'Anonymous User',
+          authorAvatar: profile?.avatar_url || '',
+          date: new Date(post.created_at).toLocaleDateString(),
+          likes: post.likes_count || 0,
+          dislikes: post.dislikes_count || 0,
+          comments: post.comments_count || 0,
+          tags: [],
+          images: post.images || [],
+          channel: post.channel || 'general',
+          profile: profile
+        };
+      });
 
       setPosts(formattedPosts);
     } catch (error) {
