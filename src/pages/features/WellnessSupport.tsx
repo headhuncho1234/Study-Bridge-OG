@@ -438,7 +438,10 @@ const WellnessSupport = () => {
 
             <TabsContent value="focus-quest" className="flex justify-center">
               <FocusQuest 
-                onCoinsEarned={addCoins}
+                onCoinsEarned={(coins) => {
+                  // Legacy support for FocusQuest - award coins without time restriction
+                  addCoins('focus-quest', 60000, true); // Always under time limit for focus quest
+                }}
                 onStreakUpdate={updateStreak}
               />
             </TabsContent>

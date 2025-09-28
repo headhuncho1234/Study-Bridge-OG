@@ -53,61 +53,32 @@ const WellnessArcade = () => {
     }
   ];
 
-  const handleGameComplete = (won: boolean, completionTimeMs?: number) => {
-    let coinsEarned = 0;
-    let messages: string[] = [];
-    
-    if (won) {
-      // Check if completed under 5 minutes (300,000 ms)
-      const completedUnder5Min = !completionTimeMs || completionTimeMs <= 300000;
+  const handleGameComplete = async (won: boolean, completionTimeMs?: number) => {
+    if (won && completionTimeMs) {
+      // Award coins through the new system
+      const result = await addCoins(selectedGame || 'arcade', completionTimeMs, true);
       
-      if (completedUnder5Min) {
-        addCoins(1);
-        coinsEarned += 1;
-        messages.push("🎯 +1 Coin (Completed under 5 minutes)");
-      } else {
-        messages.push("⏰ No coin - took longer than 5 minutes");
-      }
-      
-      // Track consecutive games and check for bonus
-      const newConsecutiveCount = addConsecutiveGame();
-      
-      // Bonus for exactly 3 consecutive wins
-      if (newConsecutiveCount === 3) {
-        addCoins(1);
-        coinsEarned += 1;
-        messages.push("🔥 +1 Bonus Coin (3 wins in a row!)");
+      if (result.awarded) {
+        // Update consecutive games and arcade streak
+        const newConsecutiveCount = addConsecutiveGame(true);
+        updateArcadeStreak();
+        
+        // Show confetti for successful completion
         confetti({
           particleCount: 100,
           spread: 70,
           origin: { y: 0.6 }
         });
+        
+        console.log('Game Complete:', { won, coinsEarned: result.coinsAwarded, completionTimeMs });
+      } else {
+        console.log('Game Complete but no coins awarded:', result.reason);
       }
-      
-      // Update daily streak
-      updateArcadeStreak();
-      
-      // Show completion time if available
-      if (completionTimeMs) {
-        const minutes = Math.floor(completionTimeMs / 60000);
-        const seconds = Math.floor((completionTimeMs % 60000) / 1000);
-        messages.push(`⏱️ Completed in ${minutes}:${seconds.toString().padStart(2, '0')}`);
-      }
-      
-      // Celebration confetti
-      confetti({
-        particleCount: 50,
-        spread: 45,
-        origin: { y: 0.7 }
-      });
     } else {
-      // Reset consecutive count on loss
-      addConsecutiveGame(false); // This will reset the count in the updated hook
-      messages.push("💪 Try again to start your winning streak!");
+      // Reset consecutive count on loss or no completion time
+      addConsecutiveGame(false);
+      console.log('Game Complete:', { won, completionTimeMs, message: 'No coins awarded' });
     }
-    
-    // Show feedback
-    console.log('Game Complete:', { won, coinsEarned, messages, completionTimeMs });
     
     // Auto-return to game selection after 3 seconds
     setTimeout(() => {

@@ -8,8 +8,22 @@ import { ArrowLeft, Search, CheckCircle, Clock, AlertTriangle, FileText, Calenda
 import { useDocumentTracker } from "@/hooks/useDocumentTracker";
 
 const DocumentTracker = () => {
-  const { documents, updateDocumentStatus, getStats, getCategoryStats } = useDocumentTracker();
+  const { documents, updateDocumentStatus, getStats, getCategoryStats, isLoading } = useDocumentTracker();
+  
   const stats = getStats();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading document tracker...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -91,9 +105,11 @@ const DocumentTracker = () => {
               </div>
             </div>
             
-            <Button size="lg" className="mt-4">
-              Get Document Templates
-            </Button>
+            <div className="flex gap-4">
+              <Button size="lg" disabled>
+                Document Templates (Coming Soon)
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -241,9 +257,6 @@ const DocumentTracker = () => {
             </p>
             <Button size="lg" className="mr-4">
               Start Tracking Documents
-            </Button>
-            <Button variant="outline" size="lg">
-              See Demo
             </Button>
           </CardContent>
         </Card>

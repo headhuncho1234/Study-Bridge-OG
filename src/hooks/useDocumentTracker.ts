@@ -1,4 +1,5 @@
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useState, useEffect } from 'react';
+import { useAuth } from './useAuth';
 
 export interface DocumentItem {
   id: string;
@@ -50,8 +51,52 @@ const defaultDocuments: DocumentCategory[] = [
   }
 ];
 
-export function useDocumentTracker() {
-  const [documents, setDocuments] = useLocalStorage<DocumentCategory[]>('document-tracker', defaultDocuments);
+export const useDocumentTracker = () => {
+  const { user } = useAuth();
+  const [documents, setDocuments] = useState<DocumentCategory[]>(defaultDocuments);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load document state from user profile or localStorage
+  useEffect(() => {
+    const loadDocumentState = async () => {
+      if (!user) {
+        // Load from localStorage for unauthenticated users
+        const saved = localStorage.getItem('documentTracker');
+        if (saved) {
+          try {
+            setDocuments(JSON.parse(saved));
+          } catch (error) {
+            console.error('Error parsing saved documents:', error);
+          }
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // For authenticated users, we could extend profiles to store document state
+        // For now, still use localStorage but tagged with user ID
+        const saved = localStorage.getItem(`documentTracker_${user.id}`);
+        if (saved) {
+          setDocuments(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.error('Error loading document state:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDocumentState();
+  }, [user]);
+
+  // Save document state whenever it changes
+  useEffect(() => {
+    if (!isLoading) {
+      const storageKey = user ? `documentTracker_${user.id}` : 'documentTracker';
+      localStorage.setItem(storageKey, JSON.stringify(documents));
+    }
+  }, [documents, user, isLoading]);
 
   const updateDocumentStatus = (documentId: string, status: DocumentItem['status']) => {
     setDocuments(prevCategories => 
@@ -90,6 +135,7 @@ export function useDocumentTracker() {
     documents,
     updateDocumentStatus,
     getStats,
-    getCategoryStats
+    getCategoryStats,
+    isLoading
   };
-}
+};

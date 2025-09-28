@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useLocalStorage } from './useLocalStorage';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 export interface WellnessData {
   coins: number;
@@ -21,7 +22,8 @@ export interface WellnessStreak {
 }
 
 export const useWellnessData = () => {
-  const [wellnessData, setWellnessData] = useLocalStorage<WellnessData>('wellnessData', {
+  const { user } = useAuth();
+  const [wellnessData, setWellnessData] = useState<WellnessData>({
     coins: 0,
     streak: 0,
     lastSessionDate: null,
@@ -33,12 +35,61 @@ export const useWellnessData = () => {
     consecutiveGames: 0,
     lastGameTime: null
   });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const addCoins = (amount: number) => {
-    setWellnessData(prev => ({
-      ...prev,
-      coins: prev.coins + amount
-    }));
+  // Load wellness data from Supabase profile
+  useEffect(() => {
+    const loadWellnessData = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('coins')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile) {
+          setWellnessData(prev => ({
+            ...prev,
+            coins: profile.coins || 0
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading wellness data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadWellnessData();
+  }, [user]);
+
+  const addCoins = async (gameType: string, completionTimeMs: number, won: boolean = true) => {
+    if (!user) return { awarded: false, reason: 'Not authenticated' };
+
+    try {
+      const { data, error } = await supabase.functions.invoke('award-coin', {
+        body: { gameType, completionTimeMs, won }
+      });
+
+      if (error) throw error;
+
+      if (data.awarded) {
+        setWellnessData(prev => ({
+          ...prev,
+          coins: data.newTotal || (prev.coins + data.coinsAwarded)
+        }));
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error awarding coins:', error);
+      return { awarded: false, reason: 'Server error' };
+    }
   };
 
   const spendCoins = (amount: number): boolean => {
@@ -205,6 +256,7 @@ export const useWellnessData = () => {
     updateArcadeStreak,
     addConsecutiveGame,
     purchaseItem,
-    getBadgeInfo
+    getBadgeInfo,
+    isLoading
   };
 };

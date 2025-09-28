@@ -182,9 +182,11 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          coins: number | null
           created_at: string
           display_name: string | null
           id: string
+          questionnaire_results: Json | null
           updated_at: string
           user_id: string
           username: string
@@ -192,9 +194,11 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          coins?: number | null
           created_at?: string
           display_name?: string | null
           id?: string
+          questionnaire_results?: Json | null
           updated_at?: string
           user_id: string
           username: string
@@ -202,9 +206,11 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          coins?: number | null
           created_at?: string
           display_name?: string | null
           id?: string
+          questionnaire_results?: Json | null
           updated_at?: string
           user_id?: string
           username?: string
