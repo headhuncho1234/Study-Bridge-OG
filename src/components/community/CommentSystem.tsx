@@ -124,6 +124,12 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
     if (!content.trim()) return;
 
     // Optimistic update for immediate feedback
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('username, display_name, avatar_url')
+      .eq('user_id', user.id)
+      .single();
+
     const tempComment = {
       id: `temp_${Date.now()}`,
       content: content.trim(),
@@ -133,9 +139,9 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
       dislikes_count: 0,
       parent_comment_id: parentId || null,
       profile: {
-        username: user.email?.split('@')[0] || 'You',
-        display_name: 'You',
-        avatar_url: null
+        username: currentProfile?.username || user.email?.split('@')[0] || 'You',
+        display_name: currentProfile?.display_name || 'You',
+        avatar_url: currentProfile?.avatar_url
       },
       replies: []
     };

@@ -140,6 +140,9 @@ const Navbar = () => {
             <Link to="/profile/saved" className={`text-muted-foreground hover:text-foreground transition-smooth ${location.pathname === '/profile/saved' ? 'text-foreground font-medium' : ''}`}>
               My Results
             </Link>
+            <Link to="/dashboard" className={`text-muted-foreground hover:text-foreground transition-smooth ${location.pathname === '/dashboard' ? 'text-foreground font-medium' : ''}`}>
+              Dashboard
+            </Link>
           </div>
 
           {/* Auth Section */}
@@ -224,6 +227,14 @@ const Navbar = () => {
               >
                 <User className="h-4 w-4" />
                 <span>My Results</span>
+              </Link>
+              <Link
+                to="/dashboard"
+                className={`flex items-center space-x-2 px-4 py-2 text-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors ${location.pathname === '/dashboard' ? 'bg-muted/50 text-primary' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <Globe className="h-4 w-4" />
+                <span>Dashboard</span>
               </Link>
               <div className="px-4 pt-2">
                 {user ? (
