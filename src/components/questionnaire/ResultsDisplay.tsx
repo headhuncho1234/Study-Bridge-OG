@@ -215,6 +215,11 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
   };
 
   const formatTuition = (tuition: string) => {
+    // Handle undefined, null, or empty tuition values
+    if (!tuition || typeof tuition !== 'string') {
+      return 'Not specified';
+    }
+    
     // Extract number from tuition string and format as currency
     const numMatch = tuition.match(/[\d,]+/);
     if (numMatch) {
