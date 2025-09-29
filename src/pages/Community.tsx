@@ -102,24 +102,40 @@ const Community = () => {
       loadUserLikes();
     }
     
-    // Set up real-time subscription for posts
     const postsSubscription = supabase
       .channel('community_posts_changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'community_posts'
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'community_posts' 
         },
         (payload) => {
-          console.log('Post change received:', payload);
-          loadPosts(); // Reload posts when changes occur
+          console.log('New post added:', payload);
+          loadPosts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'community_posts' 
+        },
+        (payload) => {
+          console.log('Post updated:', payload);
+          setPosts(prevPosts => 
+            prevPosts.map(post => 
+              post.id === payload.new.id 
+                ? { ...post, likes: payload.new.likes_count || 0, dislikes: payload.new.dislikes_count || 0, comments: payload.new.comments_count || 0 }
+                : post
+            )
+          );
         }
       )
       .subscribe();
 
-    // Set up real-time subscription for likes
     const likesSubscription = supabase
       .channel('likes_changes')
       .on(
@@ -130,11 +146,11 @@ const Community = () => {
           table: 'likes'
         },
         (payload) => {
-          console.log('Likes change received:', payload);
-          loadPosts(); // Reload posts to get updated like counts
+          console.log('Like change received:', payload);
           if (user) {
-            loadUserLikes(); // Reload user likes
+            loadUserLikes();
           }
+          loadPosts();
         }
       )
       .subscribe();
@@ -145,43 +161,83 @@ const Community = () => {
     };
   }, [user]);
 
+  useEffect(() => {
+    const channel = searchParams.get('channel');
+    if (channel && channels.find(c => c.id === channel)) {
+      setActiveChannel(channel);
+    }
+  }, [searchParams]);
+
   const loadPosts = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: postsData, error: postsError } = await supabase
         .from('community_posts')
-        .select(`
-          *,
-          profiles!inner(username, display_name, avatar_url)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (postsError) {
+        console.error('Error loading posts:', postsError);
+        toast({
+          title: "Connection Error",
+          description: "Unable to load posts. Please check your internet connection and try again.",
+          variant: "destructive"
+        });
+        setPosts([]);
+        return;
+      }
 
-      const formattedPosts = data?.map(post => ({
-        id: post.id,
-        title: post.title,
-        content: post.content,
-        user_id: post.user_id,
-        author: (post as any).profiles?.display_name || (post as any).profiles?.username || 'Unknown User',
-        authorAvatar: (post as any).profiles?.avatar_url || '',
-        date: new Date(post.created_at).toLocaleDateString(),
-        likes: post.likes_count || 0,
-        dislikes: post.dislikes_count || 0,
-        comments: post.comments_count || 0,
-        tags: [],
-        images: post.images || [],
-        channel: post.channel,
-        profile: (post as any).profiles
-      })) || [];
+      if (!postsData || postsData.length === 0) {
+        setPosts([]);
+        return;
+      }
+
+      const userIds = [...new Set(postsData.map(post => post.user_id))];
+
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, username, display_name, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesError) {
+        console.error('Error loading profiles:', profilesError);
+      }
+
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          profilesMap.set(profile.user_id, profile);
+        });
+      }
+
+      const formattedPosts = postsData.map(post => {
+        const profile = profilesMap.get(post.user_id);
+        return {
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          user_id: post.user_id,
+          author: profile?.display_name || profile?.username || 'Anonymous User',
+          authorAvatar: profile?.avatar_url || '',
+          date: new Date(post.created_at).toLocaleDateString(),
+          likes: post.likes_count || 0,
+          dislikes: post.dislikes_count || 0,
+          comments: post.comments_count || 0,
+          tags: [],
+          images: post.images || [],
+          channel: post.channel || 'general',
+          profile: profile
+        };
+      });
 
       setPosts(formattedPosts);
     } catch (error) {
       console.error('Error loading posts:', error);
       toast({
-        title: "Error",
-        description: "Failed to load community posts",
+        title: "Error Loading Posts",
+        description: "Something went wrong while loading community posts. Please refresh the page.",
         variant: "destructive"
       });
+      setPosts([]);
     }
   };
 
@@ -189,16 +245,15 @@ const Community = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      const { data: likes, error } = await supabase
         .from('likes')
-        .select('id, post_id, is_like')
-        .eq('user_id', user.id)
-        .not('post_id', 'is', null);
+        .select('id, post_id, comment_id, is_like')
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
       const likesMap = new Map();
-      data?.forEach(like => {
+      likes?.forEach(like => {
         if (like.post_id) {
           likesMap.set(like.post_id, { isLike: like.is_like, id: like.id });
         }
@@ -209,31 +264,9 @@ const Community = () => {
     }
   };
 
-  const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         post.author.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = selectedTag === "" || post.tags.includes(selectedTag);
-    const matchesChannel = post.channel === activeChannel;
-    
-    return matchesSearch && matchesTag && matchesChannel;
-  });
+  const popularTags = ["tips", "scholarships", "housing", "visa", "university-life", "success-story"];
 
-  const sortedPosts = [...filteredPosts].sort((a, b) => {
-    switch (sortBy) {
-      case "popular":
-        return (b.likes + b.comments) - (a.likes + a.comments);
-      case "oldest":
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      case "newest":
-      default:
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-    }
-  });
-
-  const allTags = Array.from(new Set(posts.flatMap(post => post.tags)));
-
-  const handleCreatePost = async (postData: Omit<Post, 'id' | 'date' | 'likes' | 'comments'>) => {
+  const handleCreatePost = async (newPost: Omit<Post, 'id' | 'date' | 'likes' | 'comments'>) => {
     if (!user) {
       setIsAuthModalOpen(true);
       return;
@@ -243,11 +276,11 @@ const Community = () => {
       const { data, error } = await supabase
         .from('community_posts')
         .insert({
-          title: postData.title,
-          content: postData.content,
-          user_id: user.id,
-          channel: postData.channel,
-          images: postData.images || []
+          title: newPost.title,
+          content: newPost.content,
+          images: newPost.images,
+          channel: newPost.channel,
+          user_id: user.id
         })
         .select()
         .single();
@@ -255,17 +288,16 @@ const Community = () => {
       if (error) throw error;
 
       toast({
-        title: "Success!",
-        description: "Your post has been created successfully.",
+        title: "Post created successfully!",
+        description: "Your post has been shared with the community.",
       });
 
-      // Reload posts to get the new post with proper formatting
       loadPosts();
     } catch (error) {
       console.error('Error creating post:', error);
       toast({
-        title: "Error",
-        description: "Failed to create post. Please try again.",
+        title: "Error creating post",
+        description: "Please try again later.",
         variant: "destructive"
       });
     }
@@ -277,61 +309,89 @@ const Community = () => {
       return;
     }
 
+    const currentLike = userLikes.get(postId);
+    
+    // Optimistic UI update
+    const newUserLikes = new Map(userLikes);
+    if (currentLike?.isLike === isLike) {
+      // User is removing their like/dislike
+      newUserLikes.delete(postId);
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                [isLike ? 'likes' : 'dislikes']: Math.max(0, post[isLike ? 'likes' : 'dislikes'] - 1)
+              }
+            : post
+        )
+      );
+    } else {
+      // User is adding a new like/dislike or switching
+      newUserLikes.set(postId, { isLike, id: currentLike?.id || '' });
+      setPosts(prevPosts => 
+        prevPosts.map(post => {
+          if (post.id === postId) {
+            let newLikes = post.likes;
+            let newDislikes = post.dislikes;
+            
+            if (currentLike) {
+              // Remove previous like/dislike
+              if (currentLike.isLike) {
+                newLikes = Math.max(0, newLikes - 1);
+              } else {
+                newDislikes = Math.max(0, newDislikes - 1);
+              }
+            }
+            
+            // Add new like/dislike
+            if (isLike) {
+              newLikes += 1;
+            } else {
+              newDislikes += 1;
+            }
+            
+            return { ...post, likes: newLikes, dislikes: newDislikes };
+          }
+          return post;
+        })
+      );
+    }
+    setUserLikes(newUserLikes);
+
     try {
-      const existingLike = userLikes.get(postId);
-      
-      if (existingLike) {
-        if (existingLike.isLike === isLike) {
-          // Remove like/dislike
-          const { error } = await supabase
+      if (currentLike) {
+        if (currentLike.isLike === isLike) {
+          // Remove the like/dislike
+          await supabase
             .from('likes')
             .delete()
-            .eq('id', existingLike.id);
-
-          if (error) throw error;
-          
-          // Update local state optimistically
-          const newLikes = new Map(userLikes);
-          newLikes.delete(postId);
-          setUserLikes(newLikes);
+            .eq('id', currentLike.id);
         } else {
-          // Update existing like/dislike
-          const { error } = await supabase
+          // Update the like/dislike
+          await supabase
             .from('likes')
             .update({ is_like: isLike })
-            .eq('id', existingLike.id);
-
-          if (error) throw error;
-          
-          // Update local state optimistically  
-          const newLikes = new Map(userLikes);
-          newLikes.set(postId, { ...existingLike, isLike });
-          setUserLikes(newLikes);
+            .eq('id', currentLike.id);
         }
       } else {
         // Create new like/dislike
-        const { data, error } = await supabase
+        await supabase
           .from('likes')
           .insert({
-            user_id: user.id,
             post_id: postId,
+            user_id: user.id,
             is_like: isLike
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        
-        // Update local state optimistically
-        const newLikes = new Map(userLikes);
-        newLikes.set(postId, { isLike, id: data.id });
-        setUserLikes(newLikes);
+          });
       }
     } catch (error) {
       console.error('Error handling like:', error);
+      // Revert optimistic update on error
+      loadUserLikes();
+      loadPosts();
       toast({
         title: "Error",
-        description: "Failed to update like. Please try again.",
+        description: "Failed to update like status. Please try again.",
         variant: "destructive"
       });
     }
@@ -341,39 +401,58 @@ const Community = () => {
     navigate(`/profile/${userId}`);
   };
 
-  const handleChannelChange = (newChannel: string) => {
-    setActiveChannel(newChannel);
-    setSearchParams({ channel: newChannel });
-    setExpandedPost(null); // Reset expanded post when switching channels
-    setShowWhoLiked(null); // Reset who liked display
+  const filteredPosts = posts.filter(post => {
+    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         post.content.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTag = !selectedTag || post.tags.includes(selectedTag);
+    const matchesChannel = post.channel === activeChannel;
+    return matchesSearch && matchesTag && matchesChannel;
+  });
+
+  const sortedPosts = [...filteredPosts].sort((a, b) => {
+    switch (sortBy) {
+      case 'mostActive':
+        return b.comments - a.comments;
+      case 'topLiked':
+        return b.likes - a.likes;
+      case 'newest':
+      default:
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+  });
+
+  const handleChannelChange = (channel: string) => {
+    setActiveChannel(channel);
+    setSearchParams({ channel });
+    setSearchQuery("");
+    setSelectedTag("");
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-24">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+            <Link to="/">
+              <Button variant="outline" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Home
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold">Student Community</h1>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Student Community
+              </h1>
+              <p className="text-muted-foreground">
+                Connect, share experiences, and support each other
+              </p>
+            </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setIsProfileEditOpen(true)}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Profile
-            </Button>
+          <div className="flex gap-2">
             <Button 
               onClick={() => {
                 if (!user) {
@@ -382,81 +461,122 @@ const Community = () => {
                   setIsCreateModalOpen(true);
                 }
               }}
+              className="bg-primary hover:bg-primary-dark text-primary-foreground shadow-card transition-smooth"
             >
               <Plus className="h-4 w-4 mr-2" />
               Create Post
             </Button>
+            
+            {user && (
+              <Button
+                variant="outline"
+                onClick={() => setIsProfileEditOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Edit Profile
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Channel Tabs */}
-        <Tabs value={activeChannel} onValueChange={handleChannelChange} className="space-y-8">
-          <TabsList className="grid grid-cols-7 gap-1 h-auto p-1 bg-muted/50">
+        {/* Channel Navigation */}
+        <Tabs value={activeChannel} onValueChange={handleChannelChange} className="mb-8">
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-7">
             {channels.map((channel) => (
               <TabsTrigger 
                 key={channel.id} 
                 value={channel.id}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="flex items-center gap-2 text-xs md:text-sm"
               >
                 {channel.icon}
                 <span className="hidden sm:inline">{channel.name}</span>
               </TabsTrigger>
             ))}
           </TabsList>
-
+          
           {channels.map((channel) => (
-            <TabsContent key={channel.id} value={channel.id} className="space-y-6">
-              {/* Filters and Search */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Input
-                    placeholder="Search posts..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full sm:w-80"
-                  />
-                  
-                  {allTags.length > 0 && (
-                    <Select value={selectedTag} onValueChange={setSelectedTag}>
-                      <SelectTrigger className="w-full sm:w-48">
-                        <SelectValue placeholder="Filter by tag" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All tags</SelectItem>
-                        {allTags.map(tag => (
-                          <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+            <TabsContent key={channel.id} value={channel.id}>
+              {/* Search, Filters and Sort */}
+              <div className="grid md:grid-cols-5 gap-6 mb-8">
+                <div className="md:col-span-2">
+                  <div className="relative">
+                    <Input
+                      placeholder={`Search ${channel.name.toLowerCase()} posts...`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                    <MessageCircle className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
                 </div>
                 
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full sm:w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Newest</SelectItem>
-                    <SelectItem value="oldest">Oldest</SelectItem>
-                    <SelectItem value="popular">Most Popular</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="md:col-span-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={selectedTag === "" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedTag("")}
+                    >
+                      All
+                    </Button>
+                    {popularTags.map((tag) => (
+                      <Button
+                        key={tag}
+                        variant={selectedTag === tag ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedTag(tag)}
+                        className="text-xs"
+                      >
+                        {tag}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="md:col-span-1">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">
+                        <div className="flex items-center gap-2">
+                          <ArrowLeft className="h-4 w-4" />
+                          Newest
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="mostActive">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="h-4 w-4" />
+                          Most Active
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="topLiked">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4" />
+                          Top Liked
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Posts */}
               <div className="space-y-6">
                 {sortedPosts.map((post) => (
-                  <Card key={post.id} className="transition-all hover:shadow-lg">
+                  <Card key={post.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
-                      <div className="flex items-start gap-4">
-                        <Avatar>
-                          <AvatarImage src={post.authorAvatar} />
-                          <AvatarFallback>
-                            {post.author.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar 
+                            className="cursor-pointer hover:scale-105 transition-transform"
+                            onClick={() => handleUserClick(post.user_id)}
+                          >
+                            <AvatarImage src={post.authorAvatar} />
+                            <AvatarFallback>{post.author.charAt(0)}</AvatarFallback>
+                          </Avatar>
                           <div>
                             <h3 className="font-semibold text-lg">{post.title}</h3>
                             <p className="text-sm text-muted-foreground">
@@ -537,7 +657,7 @@ const Community = () => {
                             className="text-muted-foreground hover:text-primary transition-colors"
                           >
                             <MessageCircle className="h-4 w-4 mr-1" />
-                            {post.comments} Comments
+                            {post.comments}
                           </Button>
                           
                           <Button
@@ -567,7 +687,7 @@ const Community = () => {
                         </div>
                       )}
                       
-                      {/* Always show comments - no conditional rendering */}
+                       {/* Always show comments if there are any, expanded view for comment input */}
                       <div className="mt-6 pt-6 border-t">
                         <CommentSystem 
                           postId={post.id} 
