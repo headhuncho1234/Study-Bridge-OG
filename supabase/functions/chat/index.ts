@@ -171,7 +171,7 @@ CRITICAL: Always return exactly 5-7 university matches. Include accurate U.S. Ne
       }
     }
 
-    return new Response(JSON.stringify({ response: aiResponse }), {
+    return new Response(JSON.stringify({ message: aiResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
     

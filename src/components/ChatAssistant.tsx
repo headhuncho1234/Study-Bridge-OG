@@ -99,7 +99,7 @@ const ChatAssistant = () => {
 
       if (error) throw error;
 
-      const assistantContent = data?.message || data?.generatedText || 'I apologize, but I encountered an issue. Please try again.';
+      const assistantContent = data?.response || data?.message || 'I apologize, but I encountered an issue. Please try again.';
       
       // Save assistant message to database if session exists
       if (currentSession) {
