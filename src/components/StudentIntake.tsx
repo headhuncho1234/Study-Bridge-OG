@@ -30,6 +30,11 @@ const StudentIntake = () => {
   const generateMatches = async (formData: QuestionnaireData) => {
     setIsGeneratingMatches(true);
     
+    // Define actualMajor at the start so it's available in catch block
+    const actualMajor = formData.major === "other" && formData.customMajor 
+      ? formData.customMajor 
+      : formData.major;
+    
     try {
       // Use custom major if "other" is selected
       const actualMajor = formData.major === "other" && formData.customMajor 
@@ -129,55 +134,23 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
     } catch (error) {
       console.error('Error generating matches:', error);
       
-      // Enhanced fallback with actual major
-      const actualMajor = formData.major === "other" && formData.customMajor 
-        ? formData.customMajor 
-        : formData.major;
-      
-      const fallbackData = {
-        matches: [
-          {
-            name: `Sample University for ${actualMajor}`,
-            location: "Example City, CA",
-            ranking: "#50 National Universities",
-            tuition: "$35,000/year",
-            acceptance_rate: "45%",
-            difficulty: "Moderate",
-            student_body: 25000,
-            description: `Strong ${actualMajor} program with excellent faculty and research opportunities.`,
-            programs: [actualMajor, "Liberal Arts", "Sciences", "Business"],
-            school_scholarships: {
-              merit_scholarships: [
-                {
-                  name: `${actualMajor} Excellence Scholarship`,
-                  amount: "$10,000",
-                  eligibility: "Academic excellence in chosen field"
-                }
-              ]
-            },
-            website: "https://example-university.edu",
-            personalized_summary: `Great match for ${actualMajor} with your academic profile and preferences.`
-          }
-        ],
-        profile_summary: {
-          major: actualMajor,
-          GPA: formData.gpa,
-          budget: formData.budget
-        }
-      };
-      
       toast({
-        title: "Using Sample Data",
-        description: "Generation failed. Showing sample results - please try again.",
+        title: "Generation Failed",
+        description: "Unable to generate university matches. Please try again.",
         variant: "destructive"
       });
       
+      // Navigate to results with error state
       navigate('/results', { 
         state: { 
           matchData: {
-            ...fallbackData,
-            isSampleData: true,
-            actualMajor: actualMajor,
+            matches: [],
+            profile_summary: {
+              major: actualMajor,
+              GPA: formData.gpa,
+              budget: formData.budget
+            },
+            hasError: true,
             originalProfile: formData
           }
         } 

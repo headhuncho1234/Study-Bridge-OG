@@ -53,7 +53,7 @@ CRITICAL: You MUST return results in the exact JSON format specified below. Each
 - website: Official university website (if available)
 - personalized_summary: A short explanation of why this school matches the student's preferences
 
-Return ONLY valid JSON array of 3-5 university matches in this format:
+Return ONLY valid JSON array of 2-3 university matches in this format:
 [
   {
     "name": "University of Texas Austin",

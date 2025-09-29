@@ -242,19 +242,33 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
     return 'border-green-500 text-green-600 bg-green-50';
   };
 
-  const renderUniversityResults = (results: any) => (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
-          Your Personalized University Matches
-        </h2>
-        <p className="text-muted-foreground">
-          Based on your preferences, here are universities that match your criteria
-        </p>
-      </div>
+  const renderUniversityResults = (results: any) => {
+    // Check if matches exist and have content
+    if (!results.matches || results.matches.length === 0) {
+      return (
+        <div className="text-center py-12 space-y-4">
+          <div className="text-lg font-medium">Sorry, no universities match your preferences.</div>
+          <div className="text-muted-foreground">Try adjusting your questionnaire.</div>
+          <Button onClick={() => window.history.back()} variant="outline">
+            Return to Questionnaire
+          </Button>
+        </div>
+      );
+    }
 
-      <div className="grid gap-6">
-        {results.matches?.map((university: any, index: number) => (
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+            Your Personalized University Matches
+          </h2>
+          <p className="text-muted-foreground">
+            Based on your preferences, here are universities that match your criteria
+          </p>
+        </div>
+
+        <div className="grid gap-6">
+          {results.matches.map((university: any, index: number) => (
           <Card key={index} className="hover:shadow-card transition-all duration-300 border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
@@ -413,6 +427,7 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
       />
     </div>
   );
+  };
 
   const renderScholarshipResults = (results: ScholarshipResults) => (
     <div className="space-y-6">
@@ -856,7 +871,15 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
     return renderVisaResults(data as VisaResults);
   }
 
-  return <div>No results to display</div>;
+  return (
+    <div className="text-center py-12 space-y-4">
+      <div className="text-lg font-medium">Sorry, no universities match your preferences.</div>
+      <div className="text-muted-foreground">Try adjusting your questionnaire.</div>
+      <Button onClick={() => window.history.back()} variant="outline">
+        Return to Questionnaire
+      </Button>
+    </div>
+  );
 };
 
 export default ResultsDisplay;
