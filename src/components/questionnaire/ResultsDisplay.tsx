@@ -190,9 +190,16 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                 ))}
               </div>
               
-              <Button className="w-full" variant="outline">
+              <Button 
+                className="w-full" 
+                variant="outline"
+                onClick={() => {
+                  const url = university.website || `https://www.google.com/search?q=${encodeURIComponent(university.name + ' official website')}`;
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
+              >
                 <Info className="h-4 w-4 mr-2" />
-                View Details & Scholarships
+                Visit Official Website
               </Button>
             </CardContent>
           </Card>
@@ -279,10 +286,23 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                 <p className="text-sm text-muted-foreground">{scholarship.tips}</p>
               </div>
               
-              {scholarship.application_link && (
-                <Button className="w-full" variant="outline">
+              {scholarship.application_link ? (
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => window.open(scholarship.application_link, '_blank', 'noopener,noreferrer')}
+                >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Apply Now
+                </Button>
+              ) : (
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(scholarship.name + ' scholarship application')}`, '_blank', 'noopener,noreferrer')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Search Application
                 </Button>
               )}
             </CardContent>

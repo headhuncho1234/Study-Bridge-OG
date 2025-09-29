@@ -140,7 +140,8 @@ const Results = () => {
           : `University Matches - ${new Date().toLocaleDateString()}`;
         
         try {
-          const { error } = await supabase
+          // Save to saved_results table
+          const { error: savedResultsError } = await supabase
             .from('saved_results')
             .insert({
               user_id: user.id,
@@ -148,7 +149,31 @@ const Results = () => {
               data: JSON.parse(JSON.stringify(matchData))
             });
 
-          if (error) throw error;
+          if (savedResultsError) throw savedResultsError;
+
+          // Also save to profile.questionnaire_results for historical tracking
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('questionnaire_results')
+            .eq('user_id', user.id)
+            .single();
+
+          const currentResults = (profile?.questionnaire_results as any[]) || [];
+          const newResult = {
+            timestamp: new Date().toISOString(),
+            source: source,
+            title: title,
+            data: matchData
+          };
+
+          const updatedResults = [...currentResults, newResult];
+
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ questionnaire_results: updatedResults })
+            .eq('user_id', user.id);
+
+          if (profileError) throw profileError;
 
           toast({
             title: "Results Automatically Saved! ✨",
