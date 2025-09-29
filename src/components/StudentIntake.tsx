@@ -36,80 +36,52 @@ const StudentIntake = () => {
         ? formData.customMajor 
         : formData.major;
 
-      const prompt = `You are an admissions-match generator. Use ONLY the questionnaire data provided. Consider only U.S. colleges/universities. Do NOT invent facts; if you include time-sensitive items (deadlines, acceptance rates, costs), mark them as "needs_verification": true unless an external enrichment step is performed. Output MUST be valid JSON following the schema exactly.
+      const prompt = `Generate personalized university search results for international students based on the questionnaire data provided.
 
-Here is the student profile (QUESTIONNAIRE_ANSWERS): ${JSON.stringify({...formData, actualMajor})}
+Student Profile: ${JSON.stringify({...formData, actualMajor})}
 
-TASK:
-1) Produce up to 10 U.S. university matches ranked by match_score (0-100).
-2) For each match provide a fit breakdown (academic, program, financial, location, culture), a 1-2 sentence "why this fits" explanation tied to inputs, and suggested next actions.
-3) Produce up to 10 scholarship recommendations (U.S. only) relevant to the profile, with eligibility bullets and estimated award range.
-4) Return output as JSON exactly matching the provided schema.
+Return results in structured JSON format that matches this exact schema for rich university cards and PDF export.
 
-Output only JSON in this exact format:
-{
-  "generated_at": "ISO_8601_timestamp",
-  "profile_summary": {
-    "major": "${actualMajor}",
-    "GPA": "${formData.gpa}",
-    "enrollmentType": "${formData.enrollmentType}",
-    "budget": "${formData.budget}"
-  },
-  "matches": [
-    {
-      "name": "string",
-      "city": "string",
-      "state": "string",
-      "unit_id": "string_or_null",
-      "match_score": 0,
-      "fit": {
-        "academic": 0,
-        "program": 0,
-        "financial": 0,
-        "location": 0,
-        "culture": 0
-      },
-      "why_match": "string (1-2 sentences focused on user inputs)",
-      "suggested_next_steps": ["Apply", "Visit", "Contact Admissions", "Request Scholarship Info"],
-      "application_deadline": {
-        "type": "string e.g., 'Regular' or 'Priority'",
-        "date": "YYYY-MM-DD or null",
-        "needs_verification": true
-      },
-      "estimated_net_price": {
-        "value": 0,
-        "currency": "USD",
-        "needs_verification": true
-      },
-      "scholarship_matches": [
-        {
-          "name": "string",
-          "award_range": "string e.g., '$2k-$20k'",
-          "eligibility_summary": "string",
-          "deadline": "YYYY-MM-DD or null",
-          "needs_verification": true,
-          "match_score": 0
-        }
+Each university result MUST include ALL these fields:
+- name: Full official name of the university
+- location: City, State (e.g., "Austin, TX")
+- ranking: Ranking text (e.g., "#38 National Universities")
+- tuition: Annual tuition as a string (e.g., "$41,998/year")
+- acceptance_rate: Acceptance rate with % (e.g., "31.8%")
+- difficulty: One of ["Low", "Moderate", "High", "Very High"]
+- student_body: Approximate number of enrolled students (integer)
+- description: 1–2 sentence summary of the school
+- programs: Array of top program areas (e.g., ["Engineering", "Business", "Liberal Arts"])
+- school_scholarships: Object with merit_scholarships array containing objects with name, amount, and eligibility
+- website: Official university website (if available)
+- personalized_summary: A short explanation of why this school matches the student's preferences
+
+Return ONLY valid JSON array of 3-5 universities matching this format:
+[
+  {
+    "name": "University of Texas Austin",
+    "location": "Austin, TX",
+    "ranking": "#38 National Universities",
+    "tuition": "$41,998/year",
+    "acceptance_rate": "31.8%",
+    "difficulty": "Moderate",
+    "student_body": 52000,
+    "description": "Large public research university with strong programs.",
+    "programs": ["Engineering", "Business", "Liberal Arts", "Natural Sciences"],
+    "school_scholarships": {
+      "merit_scholarships": [
+        { "name": "UT Scholarship", "amount": "$15,000", "eligibility": "Merit-based" }
       ]
-    }
-  ],
-  "scholarship_recommendations": [
-    {
-      "name": "string",
-      "award_range": "string",
-      "eligibility": "string",
-      "deadline": "YYYY-MM-DD or null",
-      "application_link": "string_or_null",
-      "needs_verification": true,
-      "match_score": 0
-    }
-  ],
-  "assumptions": ["list any assumptions the system made"],
-  "notes": "string - short caution about verifying time-sensitive data"
-}`;
+    },
+    "website": "https://www.utexas.edu",
+    "personalized_summary": "Strong in your preferred field of engineering and generous scholarships."
+  }
+]
+
+Do NOT return plain text, tables, or markdown. Only return valid JSON following this schema.`;
 
       const { data, error } = await supabase.functions.invoke('chat', {
-        body: { message: prompt }
+        body: { message: prompt, context: 'university_matching' }
       });
 
       if (error) {
@@ -117,11 +89,27 @@ Output only JSON in this exact format:
       }
 
       // Parse the JSON response
-      const jsonStart = data.response.indexOf('{');
-      const jsonEnd = data.response.lastIndexOf('}') + 1;
-      const jsonString = data.response.substring(jsonStart, jsonEnd);
+      let jsonString = data.message || data.response;
       
-      const matchData = JSON.parse(jsonString);
+      // Find JSON array in response
+      const arrayStart = jsonString.indexOf('[');
+      const arrayEnd = jsonString.lastIndexOf(']') + 1;
+      
+      if (arrayStart !== -1 && arrayEnd !== -1) {
+        jsonString = jsonString.substring(arrayStart, arrayEnd);
+      }
+      
+      const matchesArray = JSON.parse(jsonString);
+      
+      // Convert to expected format for ResultsDisplay
+      const matchData = {
+        matches: matchesArray,
+        profile_summary: {
+          major: actualMajor,
+          GPA: formData.gpa,
+          budget: formData.budget
+        }
+      };
       
       // Navigate to results page with match data
       navigate('/results', { 
@@ -147,64 +135,35 @@ Output only JSON in this exact format:
         : formData.major;
       
       const fallbackData = {
-        generated_at: new Date().toISOString(),
-        profile_summary: {
-          major: actualMajor,
-          GPA: formData.gpa,
-          enrollmentType: formData.enrollmentType,
-          budget: formData.budget
-        },
         matches: [
           {
             name: `Sample University for ${actualMajor}`,
-            city: "Example City",
-            state: "CA",
-            unit_id: null,
-            match_score: 85,
-            fit: {
-              academic: 85,
-              program: 90,
-              financial: 80,
-              location: 85,
-              culture: 80
+            location: "Example City, CA",
+            ranking: "#50 National Universities",
+            tuition: "$35,000/year",
+            acceptance_rate: "45%",
+            difficulty: "Moderate",
+            student_body: 25000,
+            description: `Strong ${actualMajor} program with excellent faculty and research opportunities.`,
+            programs: [actualMajor, "Liberal Arts", "Sciences", "Business"],
+            school_scholarships: {
+              merit_scholarships: [
+                {
+                  name: `${actualMajor} Excellence Scholarship`,
+                  amount: "$10,000",
+                  eligibility: "Academic excellence in chosen field"
+                }
+              ]
             },
-            why_match: `Strong ${actualMajor} program with excellent faculty and research opportunities that align with your academic profile.`,
-            suggested_next_steps: ["Try Again", "Visit Website", "Contact Admissions"],
-            application_deadline: {
-              type: "Regular",
-              date: "2025-01-15",
-              needs_verification: true
-            },
-            estimated_net_price: {
-              value: 25000,
-              currency: "USD",
-              needs_verification: true
-            },
-            scholarship_matches: [
-              {
-                name: `${actualMajor} Excellence Scholarship`,
-                award_range: "$5,000-$15,000",
-                eligibility_summary: "Academic excellence in chosen field",
-                deadline: "2024-12-01",
-                needs_verification: true,
-                match_score: 80
-              }
-            ]
+            website: "https://example-university.edu",
+            personalized_summary: `Great match for ${actualMajor} with your academic profile and preferences.`
           }
         ],
-        scholarship_recommendations: [
-          {
-            name: "Merit-Based Grant",
-            award_range: "$1,000-$5,000",
-            eligibility: "Academic achievement and leadership",
-            deadline: "2024-11-30",
-            application_link: null,
-            needs_verification: true,
-            match_score: 75
-          }
-        ],
-        assumptions: ["This is fallback data due to generation error", `Using custom major: ${actualMajor}`],
-        notes: "Please try generating matches again for accurate results. All information should be verified with institutions."
+        profile_summary: {
+          major: actualMajor,
+          GPA: formData.gpa,
+          budget: formData.budget
+        }
       };
       
       toast({

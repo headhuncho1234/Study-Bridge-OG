@@ -242,7 +242,7 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
     return 'border-green-500 text-green-600 bg-green-50';
   };
 
-  const renderUniversityResults = (results: UniversityResults) => (
+  const renderUniversityResults = (results: any) => (
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
@@ -254,7 +254,7 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
       </div>
 
       <div className="grid gap-6">
-        {results.matches?.map((university, index) => (
+        {results.matches?.map((university: any, index: number) => (
           <Card key={index} className="hover:shadow-card transition-all duration-300 border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
@@ -278,9 +278,11 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="ml-2">
-                    {university.match_score}% Match
-                  </Badge>
+                  {university.difficulty && (
+                    <Badge variant="secondary" className="ml-2">
+                      {university.difficulty}
+                    </Badge>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -306,7 +308,7 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                   <div>
                     <div className="text-muted-foreground">Tuition</div>
                     <div className="font-bold text-green-600">
-                      {formatTuition(university.tuition)}/year
+                      {formatTuition(university.tuition)}
                     </div>
                   </div>
                 </div>
@@ -320,13 +322,6 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                     >
                       {university.acceptance_rate}
                     </Badge>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Home className="h-4 w-4 text-orange-600" />
-                  <div>
-                    <div className="text-muted-foreground">Campus Size</div>
-                    <div className="font-medium">{university.campus_size}</div>
                   </div>
                 </div>
                 {university.student_body && (
@@ -356,7 +351,7 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
               <div>
                 <div className="text-sm text-muted-foreground mb-2">Available Programs:</div>
                 <div className="flex flex-wrap gap-1">
-                  {university.programs?.slice(0, 4).map((program, idx) => (
+                  {university.programs?.slice(0, 4).map((program: string, idx: number) => (
                     <Badge key={idx} variant="secondary" className="text-xs">
                       {program}
                     </Badge>
@@ -369,56 +364,17 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                 </div>
               </div>
 
-              {university.school_scholarships && (
+              {university.school_scholarships?.merit_scholarships && (
                 <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-md">
                   <div className="text-sm font-medium text-green-800 dark:text-green-200 mb-2 flex items-center gap-1">
                     <Award className="h-4 w-4" />
                     Available Scholarships:
                   </div>
-                  {university.school_scholarships.merit_scholarships?.slice(0, 2).map((scholarship, idx) => (
+                  {university.school_scholarships.merit_scholarships.slice(0, 3).map((scholarship: any, idx: number) => (
                     <div key={idx} className="text-xs text-green-700 dark:text-green-300">
                       • {scholarship.name}: {scholarship.amount} ({scholarship.eligibility})
                     </div>
                   ))}
-                  {university.school_scholarships.need_based?.slice(0, 1).map((scholarship, idx) => (
-                    <div key={idx} className="text-xs text-green-700 dark:text-green-300">
-                      • {scholarship.name}: {scholarship.amount} ({scholarship.eligibility})
-                    </div>
-                  ))}
-                  {university.school_scholarships.program_specific?.slice(0, 1).map((scholarship, idx) => (
-                    <div key={idx} className="text-xs text-green-700 dark:text-green-300">
-                      • {scholarship.name}: {scholarship.amount} ({scholarship.eligibility})
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {university.detailed_info && (
-                <div className="bg-accent/10 p-3 rounded-md">
-                  <div className="text-sm font-medium text-primary mb-2">Additional Information:</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                    {university.detailed_info.student_faculty_ratio && (
-                      <div>Student-Faculty Ratio: {university.detailed_info.student_faculty_ratio}</div>
-                    )}
-                    {university.detailed_info.retention_rate && (
-                      <div>Retention Rate: {university.detailed_info.retention_rate}</div>
-                    )}
-                    {university.detailed_info.graduation_rate && (
-                      <div>Graduation Rate: {university.detailed_info.graduation_rate}</div>
-                    )}
-                  </div>
-                  {university.detailed_info.facilities && university.detailed_info.facilities.length > 0 && (
-                    <div className="mt-2">
-                      <div className="text-xs font-medium mb-1">Key Facilities:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {university.detailed_info.facilities.slice(0, 3).map((facility, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
-                            {facility}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
               

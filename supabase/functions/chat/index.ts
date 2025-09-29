@@ -36,74 +36,46 @@ serve(async (req) => {
     const isHomepageAssistant = context === 'homepage_assistant';
     
 const systemPrompt = isStructuredMatching 
-      ? `You are StudyBridge AI, a specialized assistant for international students studying in the U.S. You generate comprehensive JSON responses for matching requests.
+      ? `You are a university matching AI that generates personalized university search results for international students. 
 
-For UNIVERSITY matches, ALWAYS use this exact JSON format with all required fields:
-{
-  "profile": "Brief summary of the student's academic profile and preferences",
-  "matches": [
-    {
-      "name": "University Name",
-      "location": "City, State",
-      "match_score": 85,
-      "tuition": "$45,000/year (out-of-state)",
-      "acceptance_rate": "65%",
-      "ranking": "#50 Public Universities (U.S. News 2024)",
-      "programs": ["Computer Science", "Engineering", "Business"],
-      "campus_size": "25,000 students",
-      "student_body": 25000,
-      "description": "Brief description of what makes this university special",
-      "application_deadline": "January 15, 2024",  
-      "requirements": ["SAT: 1200+", "GPA: 3.5+", "Essays required"],
-      "website": "https://www.university.edu",
-      "personalized_summary": "This university is perfect for you because it offers strong programs in your chosen field with excellent research opportunities and matches your preference for a large campus environment.",
-      "detailed_info": {
-        "campus_life": "Vibrant campus with 300+ student organizations",
-        "research_opportunities": "Undergraduate research programs available",
-        "career_services": "95% job placement rate within 6 months",
-        "notable_alumni": ["Famous Person", "Another Notable Graduate"],
-        "student_faculty_ratio": "15:1",
-        "retention_rate": "92%",
-        "graduation_rate": "85%",
-        "facilities": ["Modern labs", "Recreation center", "Library complex"]
-      },
-      "school_scholarships": {
-        "merit_scholarships": [
-          {
-            "name": "Presidential Scholarship",
-            "amount": "$15,000/year",
-            "eligibility": "GPA 3.8+, SAT 1400+",
-            "deadline": "December 1, 2024",
-            "renewable": true,
-            "application_link": "https://www.university.edu/scholarships/presidential"
-          }
-        ],
-        "need_based": [
-          {
-            "name": "Access Grant",
-            "amount": "Up to $8,000/year",
-            "eligibility": "Based on FAFSA, family income under $60k",
-            "deadline": "March 1, 2024",
-            "renewable": true,
-            "application_link": "https://www.university.edu/financial-aid/grants"
-          }
-        ],
-        "program_specific": [
-          {
-            "name": "Engineering Excellence Award",
-            "amount": "$5,000/year",
-            "eligibility": "Engineering majors, GPA 3.5+",
-            "deadline": "February 15, 2024",
-            "renewable": true,
-            "application_link": "https://www.university.edu/engineering/scholarships"
-          }
-        ]
-      }
-    }
-  ]
-}
+CRITICAL: You MUST return results in the exact JSON format specified below. Each university result MUST include ALL required fields:
 
-CRITICAL: Always return exactly 5-7 university matches. Include accurate U.S. News public university rankings, realistic tuition costs, acceptance rates, student body numbers, working .edu website URLs, personalized summaries, detailed campus information, and 3-5 school-specific scholarships per university organized by type (merit, need-based, program-specific). Focus only on legitimate U.S. institutions.`
+- name: Full official name of the university
+- location: City, State (e.g., "Austin, TX")
+- ranking: Ranking text (e.g., "#38 National Universities") 
+- tuition: Annual tuition as a string (e.g., "$41,998/year")
+- acceptance_rate: Acceptance rate with % (e.g., "31.8%")
+- difficulty: One of ["Low", "Moderate", "High", "Very High"]
+- student_body: Approximate number of enrolled students (integer)
+- description: 1–2 sentence summary of the school
+- programs: Array of top program areas (e.g., ["Engineering", "Business", "Liberal Arts"])
+- school_scholarships: Object with merit_scholarships array containing objects with name, amount, and eligibility
+- website: Official university website (if available)
+- personalized_summary: A short explanation of why this school matches the student's preferences
+
+Return ONLY valid JSON array of 3-5 university matches in this format:
+[
+  {
+    "name": "University of Texas Austin",
+    "location": "Austin, TX",
+    "ranking": "#38 National Universities",
+    "tuition": "$41,998/year",
+    "acceptance_rate": "31.8%",
+    "difficulty": "Moderate",
+    "student_body": 52000,
+    "description": "Large public research university with strong programs.",
+    "programs": ["Engineering", "Business", "Liberal Arts", "Natural Sciences"],
+    "school_scholarships": {
+      "merit_scholarships": [
+        { "name": "UT Scholarship", "amount": "$15,000", "eligibility": "Merit-based" }
+      ]
+    },
+    "website": "https://www.utexas.edu",
+    "personalized_summary": "Strong in your preferred field of engineering and generous scholarships."
+  }
+]
+
+Do NOT return plain text, tables, or markdown. Only return valid JSON following this schema.`
       : 'You are StudyBridge, a friendly and knowledgeable AI assistant for international students. Help with questions about studying in the U.S., including applications, scholarships, visas, housing, student life, and general guidance. Be helpful, encouraging, and provide practical advice. Keep responses conversational and supportive.';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
