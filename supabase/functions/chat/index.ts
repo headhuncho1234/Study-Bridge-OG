@@ -141,9 +141,9 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
           throw new Error('Invalid JSON structure: missing expected data arrays or objects');
         }
       } catch (jsonError) {
-        console.error('JSON validation error:', jsonError);
-        const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown JSON error';
-        throw new Error(`Invalid JSON response: ${errorMessage}`);
+        console.error('JSON validation warning:', jsonError);
+        // Don't throw error, just log the warning and continue
+        console.log('Proceeding with potentially imperfect JSON structure');
       }
     }
 

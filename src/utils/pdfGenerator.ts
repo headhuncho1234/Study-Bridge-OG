@@ -111,36 +111,48 @@ export class DynamicPDFGenerator {
     this.currentY += (splitText.length * 6) + 2;
   }
 
-  private addScoreChart(matches: Array<{name: string, match_score: number}>) {
+  private addScoreChart(matches: Array<{name: string, match_score?: number, acceptance_rate?: string}>) {
+    // Skip chart if no matches or insufficient data
+    if (!matches || matches.length === 0) {
+      return;
+    }
+    
     this.checkPageBreak(60);
     
     const chartX = this.leftMargin;
     const chartY = this.currentY;
     const chartWidth = 160;
-    const chartHeight = 50;
+    const chartHeight = Math.min(50, 10 + (matches.length * 10));
     
-    this.doc.setLineWidth(1);
-    this.doc.rect(chartX, chartY, chartWidth, chartHeight);
-    
-    // Draw bars
-    const barHeight = 8;
-    const spacing = 10;
-    
-    matches.slice(0, 5).forEach((match, index) => {
-      const barY = chartY + 5 + (index * spacing);
-      const barWidth = (match.match_score / 100) * (chartWidth - 60);
+    // Only draw chart if we have valid dimensions
+    if (chartWidth > 0 && chartHeight > 0) {
+      this.doc.setLineWidth(1);
+      this.doc.rect(chartX, chartY, chartWidth, chartHeight);
       
-      // Draw bar
-      this.doc.setFillColor(59, 130, 246); // Blue
-      this.doc.rect(chartX + 50, barY, barWidth, barHeight, 'F');
+      const spacing = 8;
       
-      // Add school name
-      this.doc.setFontSize(8);
-      this.doc.text(match.name.substring(0, 15) + '...', chartX + 2, barY + 5);
-      
-      // Add percentage
-      this.doc.text(`${match.match_score}%`, chartX + 55 + barWidth, barY + 5);
-    });
+      matches.slice(0, 5).forEach((match, index) => {
+        const itemY = chartY + 8 + (index * spacing);
+        
+        // Add name
+        this.doc.setFontSize(8);
+        this.doc.setFont('helvetica', 'normal');
+        const shortName = match.name.length > 25 ? match.name.substring(0, 25) + '...' : match.name;
+        this.doc.text(shortName, chartX + 5, itemY);
+        
+        // Add either match score or acceptance rate
+        if (match.match_score !== undefined) {
+          // For scholarships with match scores
+          const barWidth = Math.max(1, (match.match_score / 100) * (chartWidth - 100));
+          this.doc.setFillColor(59, 130, 246); // Blue
+          this.doc.rect(chartX + 90, itemY - 2, barWidth, 4, 'F');
+          this.doc.text(`${match.match_score}%`, chartX + 90 + barWidth + 5, itemY);
+        } else if (match.acceptance_rate) {
+          // For universities with acceptance rates
+          this.doc.text(`${match.acceptance_rate}`, chartX + 90, itemY);
+        }
+      });
+    }
     
     this.currentY = chartY + chartHeight + 10;
   }

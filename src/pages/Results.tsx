@@ -158,15 +158,25 @@ const Results = () => {
             .eq('user_id', user.id)
             .single();
 
-          const currentResults = (profile?.questionnaire_results as any[]) || [];
-          const newResult = {
-            timestamp: new Date().toISOString(),
-            source: source,
-            title: title,
-            data: matchData
-          };
+           // Ensure currentResults is always an array
+           let currentResults = [];
+           if (profile?.questionnaire_results) {
+             if (Array.isArray(profile.questionnaire_results)) {
+               currentResults = profile.questionnaire_results;
+             } else {
+               // If it's not an array, wrap it in an array or start fresh
+               currentResults = [];
+             }
+           }
+           
+           const newResult = {
+             timestamp: new Date().toISOString(),
+             source: source,
+             title: title,
+             data: matchData
+           };
 
-          const updatedResults = [...currentResults, newResult];
+           const updatedResults = [...currentResults, newResult];
 
           const { error: profileError } = await supabase
             .from('profiles')
