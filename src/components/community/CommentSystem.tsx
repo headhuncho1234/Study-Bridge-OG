@@ -75,25 +75,59 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch comments first
+      const { data: commentsData, error: commentsError } = await supabase
         .from('comments')
-        .select(`
-          *,
-          profiles(username, display_name, avatar_url)
-        `)
+        .select('*')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (commentsError) {
+        console.error('Error loading comments:', commentsError);
+        toast({
+          title: "Error loading comments",
+          description: "Please refresh the page.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!commentsData || commentsData.length === 0) {
+        setComments([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(commentsData.map(c => c.user_id))];
+      
+      // Fetch profiles separately
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, username, display_name, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesError) {
+        console.error('Error loading profiles:', profilesError);
+      }
+
+      // Create a map of profiles by user_id
+      const profilesMap = new Map();
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.user_id, profile);
+      });
 
       // Organize comments into a tree structure
       const commentMap = new Map();
       const rootComments: Comment[] = [];
 
-      data?.forEach(comment => {
+      commentsData.forEach(comment => {
+        const profile = profilesMap.get(comment.user_id);
+        
         const formattedComment = {
           ...comment,
-          profile: (comment as any).profiles || {
+          profile: profile || {
             username: 'Anonymous',
             display_name: 'Anonymous User',
             avatar_url: null
@@ -109,7 +143,7 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
 
       // Add replies to their parent comments recursively
       const addRepliesToParent = (parentId: string) => {
-        data?.forEach(comment => {
+        commentsData.forEach(comment => {
           if (comment.parent_comment_id === parentId) {
             const parent = commentMap.get(parentId);
             const child = commentMap.get(comment.id);
