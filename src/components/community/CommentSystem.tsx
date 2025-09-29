@@ -39,6 +39,8 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
   const [replyContent, setReplyContent] = useState("");
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -69,6 +71,9 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
   }, [postId]);
 
   const loadComments = async () => {
+    if (isLoading) return; // Prevent duplicate loading
+    
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('comments')
@@ -88,7 +93,11 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
       data?.forEach(comment => {
         const formattedComment = {
           ...comment,
-          profile: (comment as any).profiles,
+          profile: (comment as any).profiles || {
+            username: 'Anonymous',
+            display_name: 'Anonymous User',
+            avatar_url: null
+          },
           replies: []
         };
         commentMap.set(comment.id, formattedComment);
@@ -134,6 +143,13 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
       setExpandedComments(newExpanded);
     } catch (error) {
       console.error('Error loading comments:', error);
+      toast({
+        title: "Error loading comments",
+        description: "Please refresh the page.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -144,47 +160,9 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
     }
 
     const content = parentId ? replyContent : newComment;
-    if (!content.trim()) return;
+    if (!content.trim() || isSubmitting) return;
 
-    // Optimistic update for immediate feedback
-    const { data: currentProfile } = await supabase
-      .from('profiles')
-      .select('username, display_name, avatar_url')
-      .eq('user_id', user.id)
-      .single();
-
-    const tempComment = {
-      id: `temp_${Date.now()}`,
-      content: content.trim(),
-      created_at: new Date().toISOString(),
-      user_id: user.id,
-      likes_count: 0,
-      dislikes_count: 0,
-      parent_comment_id: parentId || null,
-      profile: {
-        username: currentProfile?.username || user.email?.split('@')[0] || 'You',
-        display_name: currentProfile?.display_name || 'You',
-        avatar_url: currentProfile?.avatar_url
-      },
-      replies: []
-    };
-
-    // Add to UI immediately
-    if (parentId) {
-      setComments(prevComments => 
-        prevComments.map(comment => {
-          if (comment.id === parentId) {
-            return {
-              ...comment,
-              replies: [...(comment.replies || []), tempComment]
-            };
-          }
-          return comment;
-        })
-      );
-    } else {
-      setComments(prevComments => [...prevComments, tempComment]);
-    }
+    setIsSubmitting(true);
 
     try {
       const { error } = await supabase
@@ -198,6 +176,7 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
 
       if (error) throw error;
 
+      // Clear input fields
       if (parentId) {
         setReplyContent("");
         setReplyingTo(null);
@@ -205,23 +184,23 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
         setNewComment("");
       }
 
+      // Reload comments to get the new one with proper profile data
+      await loadComments();
+
       toast({
         title: "Comment posted",
         description: "Your comment has been added successfully."
       });
-
-      // Reload to get actual data and remove temp comment
-      loadComments();
       
     } catch (error) {
       console.error('Error posting comment:', error);
-      // Revert optimistic update on error
-      loadComments();
       toast({
         title: "Error posting comment",
         description: "Please try again later.",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -385,9 +364,9 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
                 <Button
                   size="sm"
                   onClick={() => handleSubmitComment(comment.id)}
-                  disabled={!replyContent.trim()}
+                  disabled={!replyContent.trim() || isSubmitting}
                 >
-                  Reply
+                  {isSubmitting ? "Posting..." : "Reply"}
                 </Button>
                 <Button
                   size="sm"
@@ -396,6 +375,7 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
                     setReplyingTo(null);
                     setReplyContent("");
                   }}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
@@ -464,13 +444,14 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
               <div className="flex gap-2">
                 <Button
                   onClick={() => handleSubmitComment()}
-                  disabled={!newComment.trim()}
+                  disabled={!newComment.trim() || isSubmitting}
                 >
-                  Post Comment
+                  {isSubmitting ? "Posting..." : "Post Comment"}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={onToggleExpanded}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
