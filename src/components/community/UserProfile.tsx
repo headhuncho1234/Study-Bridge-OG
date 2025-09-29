@@ -55,6 +55,44 @@ const UserProfile = () => {
   useEffect(() => {
     if (userId) {
       loadProfile(userId);
+      
+      // Set up real-time subscriptions for user's posts and comments
+      const postsSubscription = supabase
+        .channel(`user_posts_${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'community_posts',
+            filter: `user_id=eq.${userId}`
+          },
+          () => {
+            loadProfile(userId);
+          }
+        )
+        .subscribe();
+
+      const commentsSubscription = supabase
+        .channel(`user_comments_${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'comments',
+            filter: `user_id=eq.${userId}`
+          },
+          () => {
+            loadProfile(userId);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(postsSubscription);
+        supabase.removeChannel(commentsSubscription);
+      };
     }
   }, [userId]);
 
@@ -273,9 +311,12 @@ const UserProfile = () => {
               <Card key={comment.id}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-2">
-                    <div className="text-sm text-muted-foreground">
+                    <Link
+                      to={`/community?expanded=${comment.post_id}`}
+                      className="text-sm text-primary hover:underline"
+                    >
                       Commented on: {comment.community_posts?.title || 'Unknown Post'}
-                    </div>
+                    </Link>
                     <div className="text-xs text-muted-foreground">
                       {new Date(comment.created_at).toLocaleDateString()}
                     </div>

@@ -121,6 +121,40 @@ const CommentSystem = ({ postId }: CommentSystemProps) => {
     const content = parentId ? replyContent : newComment;
     if (!content.trim()) return;
 
+    // Optimistic update for immediate feedback
+    const tempComment = {
+      id: `temp_${Date.now()}`,
+      content: content.trim(),
+      created_at: new Date().toISOString(),
+      user_id: user.id,
+      likes_count: 0,
+      dislikes_count: 0,
+      parent_comment_id: parentId || null,
+      profile: {
+        username: user.email?.split('@')[0] || 'You',
+        display_name: 'You',
+        avatar_url: null
+      },
+      replies: []
+    };
+
+    // Add to UI immediately
+    if (parentId) {
+      setComments(prevComments => 
+        prevComments.map(comment => {
+          if (comment.id === parentId) {
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), tempComment]
+            };
+          }
+          return comment;
+        })
+      );
+    } else {
+      setComments(prevComments => [...prevComments, tempComment]);
+    }
+
     try {
       const { error } = await supabase
         .from('comments')
@@ -145,10 +179,13 @@ const CommentSystem = ({ postId }: CommentSystemProps) => {
         description: "Your comment has been added successfully."
       });
 
+      // Reload to get actual data and remove temp comment
       loadComments();
       
     } catch (error) {
       console.error('Error posting comment:', error);
+      // Revert optimistic update on error
+      loadComments();
       toast({
         title: "Error posting comment",
         description: "Please try again later.",
@@ -162,6 +199,11 @@ const CommentSystem = ({ postId }: CommentSystemProps) => {
       setIsAuthModalOpen(true);
       return;
     }
+
+    // Optimistic update for immediate feedback
+    setComments(prevComments => 
+      prevComments.map(comment => updateCommentLike(comment, commentId, isLike))
+    );
 
     try {
       // Check if user already liked/disliked this comment
@@ -197,10 +239,33 @@ const CommentSystem = ({ postId }: CommentSystemProps) => {
           });
       }
 
-      loadComments();
     } catch (error) {
       console.error('Error handling like:', error);
+      // Revert optimistic update on error
+      loadComments();
+      toast({
+        title: "Error",
+        description: "Failed to update like status. Please try again.",
+        variant: "destructive"
+      });
     }
+  };
+
+  const updateCommentLike = (comment: Comment, commentId: string, isLike: boolean): Comment => {
+    if (comment.id === commentId) {
+      return {
+        ...comment,
+        likes_count: isLike ? (comment.likes_count || 0) + 1 : (comment.likes_count || 0),
+        dislikes_count: !isLike ? (comment.dislikes_count || 0) + 1 : (comment.dislikes_count || 0)
+      };
+    }
+    if (comment.replies) {
+      return {
+        ...comment,
+        replies: comment.replies.map(reply => updateCommentLike(reply, commentId, isLike))
+      };
+    }
+    return comment;
   };
 
   const toggleExpanded = (commentId: string) => {

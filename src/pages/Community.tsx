@@ -14,10 +14,8 @@ import Navbar from "@/components/Navbar";
 import DOMPurify from "dompurify";
 import CommentSystem from "@/components/community/CommentSystem";
 import ProfileEditModal from "@/components/community/ProfileEditModal";
-
-// Using default import for CreatePostModal
 import CreatePostModal from "@/components/community/CreatePostModal";
-
+import WhoLikedSection from "@/components/community/WhoLikedSection";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AuthModal from "@/components/auth/AuthModal";
@@ -44,20 +42,16 @@ interface Post {
 }
 
 const sanitizeAndFormatContent = (htmlContent: string): string => {
-  // First, sanitize the HTML to remove any dangerous content
   const sanitized = DOMPurify.sanitize(htmlContent, {
     ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'strong', 'em', 'ul', 'ol', 'li'],
     ALLOWED_ATTR: []
   });
   
-  // Create a temporary div to parse the HTML
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = sanitized;
   
-  // Convert HTML to formatted text
   let formattedText = tempDiv.textContent || tempDiv.innerText || '';
   
-  // If there are paragraph tags, preserve paragraph breaks
   if (sanitized.includes('<p>')) {
     const paragraphs = sanitized.split(/<\/p>\s*<p[^>]*>/);
     formattedText = paragraphs
@@ -65,20 +59,16 @@ const sanitizeAndFormatContent = (htmlContent: string): string => {
       .filter(p => p.length > 0)
       .join('\n\n');
   } else {
-    // Replace <br> tags with line breaks
     formattedText = sanitized.replace(/<br\s*\/?>/gi, '\n');
-    // Remove any remaining HTML tags
     formattedText = formattedText.replace(/<[^>]+>/g, '');
   }
   
-  // Clean up extra whitespace while preserving intentional line breaks
   formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
   
   return formattedText;
 };
 
 const Community = () => {
-  // State declarations
   const [posts, setPosts] = useState<Post[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
@@ -89,6 +79,8 @@ const Community = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const [userLikes, setUserLikes] = useState<Map<string, { isLike: boolean; id: string }>>(new Map());
+  const [showWhoLiked, setShowWhoLiked] = useState<string | null>(null);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -106,8 +98,10 @@ const Community = () => {
 
   useEffect(() => {
     loadPosts();
+    if (user) {
+      loadUserLikes();
+    }
     
-    // Set up real-time subscription for posts
     const postsSubscription = supabase
       .channel('community_posts_changes')
       .on(
@@ -119,7 +113,7 @@ const Community = () => {
         },
         (payload) => {
           console.log('New post added:', payload);
-          loadPosts(); // Reload only for new posts
+          loadPosts();
         }
       )
       .on(
@@ -131,7 +125,6 @@ const Community = () => {
         },
         (payload) => {
           console.log('Post updated:', payload);
-          // Update specific post instead of reloading all
           setPosts(prevPosts => 
             prevPosts.map(post => 
               post.id === payload.new.id 
@@ -143,10 +136,30 @@ const Community = () => {
       )
       .subscribe();
 
+    const likesSubscription = supabase
+      .channel('likes_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'likes'
+        },
+        (payload) => {
+          console.log('Like change received:', payload);
+          if (user) {
+            loadUserLikes();
+          }
+          loadPosts();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(postsSubscription);
+      supabase.removeChannel(likesSubscription);
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const channel = searchParams.get('channel');
@@ -157,7 +170,6 @@ const Community = () => {
 
   const loadPosts = async () => {
     try {
-      // Step 1: Fetch all community posts without joins
       const { data: postsData, error: postsError } = await supabase
         .from('community_posts')
         .select('*')
@@ -179,10 +191,8 @@ const Community = () => {
         return;
       }
 
-      // Step 2: Get unique user IDs from posts
       const userIds = [...new Set(postsData.map(post => post.user_id))];
 
-      // Step 3: Fetch profiles for those users
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, username, display_name, avatar_url')
@@ -190,10 +200,8 @@ const Community = () => {
 
       if (profilesError) {
         console.error('Error loading profiles:', profilesError);
-        // Continue without profiles data instead of failing completely
       }
 
-      // Step 4: Create a map of profiles by user_id for quick lookup
       const profilesMap = new Map();
       if (profilesData) {
         profilesData.forEach(profile => {
@@ -201,7 +209,6 @@ const Community = () => {
         });
       }
 
-      // Step 5: Combine posts with their corresponding profiles
       const formattedPosts = postsData.map(post => {
         const profile = profilesMap.get(post.user_id);
         return {
@@ -233,6 +240,31 @@ const Community = () => {
       setPosts([]);
     }
   };
+
+  const loadUserLikes = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: likes, error } = await supabase
+        .from('likes')
+        .select('id, post_id, comment_id, is_like')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const likesMap = new Map();
+      likes?.forEach(like => {
+        if (like.post_id) {
+          likesMap.set(like.post_id, { isLike: like.is_like, id: like.id });
+        }
+      });
+      setUserLikes(likesMap);
+    } catch (error) {
+      console.error('Error loading user likes:', error);
+    }
+  };
+
+  const popularTags = ["tips", "scholarships", "housing", "visa", "university-life", "success-story"];
 
   const handleCreatePost = async (newPost: Omit<Post, 'id' | 'date' | 'likes' | 'comments'>) => {
     if (!user) {
@@ -271,36 +303,76 @@ const Community = () => {
     }
   };
 
-  const popularTags = ["tips", "scholarships", "housing", "visa", "university-life", "success-story"];
-
   const handleLike = async (postId: string, isLike: boolean) => {
     if (!user) {
       setIsAuthModalOpen(true);
       return;
     }
 
-    try {
-      // Check if user already liked/disliked this post
-      const { data: existingLike } = await supabase
-        .from('likes')
-        .select('*')
-        .eq('post_id', postId)
-        .eq('user_id', user.id)
-        .single();
+    const currentLike = userLikes.get(postId);
+    
+    // Optimistic UI update
+    const newUserLikes = new Map(userLikes);
+    if (currentLike?.isLike === isLike) {
+      // User is removing their like/dislike
+      newUserLikes.delete(postId);
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                [isLike ? 'likes' : 'dislikes']: Math.max(0, post[isLike ? 'likes' : 'dislikes'] - 1)
+              }
+            : post
+        )
+      );
+    } else {
+      // User is adding a new like/dislike or switching
+      newUserLikes.set(postId, { isLike, id: currentLike?.id || '' });
+      setPosts(prevPosts => 
+        prevPosts.map(post => {
+          if (post.id === postId) {
+            let newLikes = post.likes;
+            let newDislikes = post.dislikes;
+            
+            if (currentLike) {
+              // Remove previous like/dislike
+              if (currentLike.isLike) {
+                newLikes = Math.max(0, newLikes - 1);
+              } else {
+                newDislikes = Math.max(0, newDislikes - 1);
+              }
+            }
+            
+            // Add new like/dislike
+            if (isLike) {
+              newLikes += 1;
+            } else {
+              newDislikes += 1;
+            }
+            
+            return { ...post, likes: newLikes, dislikes: newDislikes };
+          }
+          return post;
+        })
+      );
+    }
+    setUserLikes(newUserLikes);
 
-      if (existingLike) {
-        if (existingLike.is_like === isLike) {
+    try {
+      if (currentLike) {
+        if (currentLike.isLike === isLike) {
           // Remove the like/dislike
           await supabase
             .from('likes')
             .delete()
-            .eq('id', existingLike.id);
+            .eq('id', currentLike.id);
         } else {
           // Update the like/dislike
           await supabase
             .from('likes')
             .update({ is_like: isLike })
-            .eq('id', existingLike.id);
+            .eq('id', currentLike.id);
         }
       } else {
         // Create new like/dislike
@@ -312,10 +384,16 @@ const Community = () => {
             is_like: isLike
           });
       }
-
-      loadPosts();
     } catch (error) {
       console.error('Error handling like:', error);
+      // Revert optimistic update on error
+      loadUserLikes();
+      loadPosts();
+      toast({
+        title: "Error",
+        description: "Failed to update like status. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -536,58 +614,81 @@ const Community = () => {
                       
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-4">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-muted-foreground hover:text-primary"
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleLike(post.id, true)}
+                            className={`transition-colors ${
+                              userLikes.get(post.id)?.isLike === true 
+                                ? "text-red-500 hover:text-red-600" 
+                                : "text-muted-foreground hover:text-red-500"
+                            }`}
                           >
-                            <Heart className="h-4 w-4 mr-1" />
+                            <Heart 
+                              className={`h-4 w-4 mr-1 ${
+                                userLikes.get(post.id)?.isLike === true ? "fill-current" : ""
+                              }`} 
+                            />
                             {post.likes}
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-muted-foreground hover:text-destructive"
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleLike(post.id, false)}
+                            className={`transition-colors ${
+                              userLikes.get(post.id)?.isLike === false 
+                                ? "text-blue-500 hover:text-blue-600" 
+                                : "text-muted-foreground hover:text-blue-500"
+                            }`}
                           >
-                            <ThumbsDown className="h-4 w-4 mr-1" />
+                            <ThumbsDown 
+                              className={`h-4 w-4 mr-1 ${
+                                userLikes.get(post.id)?.isLike === false ? "fill-current" : ""
+                              }`} 
+                            />
                             {post.dislikes}
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-muted-foreground"
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)}
+                            className="text-muted-foreground hover:text-primary transition-colors"
                           >
                             <MessageCircle className="h-4 w-4 mr-1" />
-                            {post.comments} Comment{post.comments !== 1 ? 's' : ''}
+                            {post.comments}
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-muted-foreground hover:text-primary"
-                            onClick={() => handleUserClick(post.user_id)}
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowWhoLiked(showWhoLiked === post.id ? null : post.id)}
+                            className="text-muted-foreground hover:text-primary transition-colors"
                           >
-                            <User className="h-4 w-4 mr-1" />
-                            View Profile
+                            <Eye className="h-4 w-4 mr-1" />
+                            Who liked
                           </Button>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          {post.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          <Button variant="ghost" size="sm">
-                            <Share2 className="h-4 w-4" />
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Share2 className="h-4 w-4 mr-1" />
+                            Share
                           </Button>
                         </div>
                       </div>
-
+                      
+                      {showWhoLiked === post.id && (
+                        <div className="mt-6 pt-6 border-t">
+                          <WhoLikedSection postId={post.id} onClose={() => setShowWhoLiked(null)} />
+                        </div>
+                      )}
+                      
                       {expandedPost === post.id && (
-                        <div className="border-t pt-4">
+                        <div className="mt-6 pt-6 border-t">
                           <CommentSystem postId={post.id} />
                         </div>
                       )}
@@ -600,12 +701,9 @@ const Community = () => {
                 <Card className="text-center py-12">
                   <CardContent>
                     <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold mb-2">No posts found in {channel.name}</h3>
+                    <h3 className="text-lg font-semibold mb-2">No posts in this channel yet</h3>
                     <p className="text-muted-foreground mb-4">
-                      {searchQuery || selectedTag 
-                        ? "Try adjusting your search or filters" 
-                        : `Be the first to share your experience in the ${channel.name.toLowerCase()} channel!`
-                      }
+                      Be the first to share something with the {channel.name.toLowerCase()} community!
                     </p>
                     <Button 
                       onClick={() => {
@@ -617,7 +715,7 @@ const Community = () => {
                       }}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Create Post
+                      Create First Post
                     </Button>
                   </CardContent>
                 </Card>
@@ -625,25 +723,26 @@ const Community = () => {
             </TabsContent>
           ))}
         </Tabs>
+
+        {/* Modals */}
+        <CreatePostModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSubmit={handleCreatePost}
+          defaultChannel={activeChannel}
+          channels={channels}
+        />
+
+        <ProfileEditModal 
+          isOpen={isProfileEditOpen}
+          onClose={() => setIsProfileEditOpen(false)}
+        />
+
+        <AuthModal 
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
       </div>
-
-      <CreatePostModal 
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreatePost}
-        defaultChannel={activeChannel}
-        channels={channels}
-      />
-
-      <ProfileEditModal 
-        isOpen={isProfileEditOpen}
-        onClose={() => setIsProfileEditOpen(false)}
-      />
-
-      <AuthModal 
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
     </div>
   );
 };
