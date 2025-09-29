@@ -278,6 +278,21 @@ const Results = () => {
       // Extract user answers from profile data if available
       const userAnswers = matchData.profile || {};
       
+      // Get user profile for PDF generation
+      let userProfile = null;
+      if (user) {
+        try {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('display_name, username')
+            .eq('user_id', user.id)
+            .single();
+          userProfile = profileData;
+        } catch (error) {
+          console.log('Could not fetch user profile for PDF');
+        }
+      }
+      
       const title = source === 'scholarship-questionnaire' 
         ? `Scholarship_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}`
         : source === 'housing-questionnaire' 
@@ -288,7 +303,7 @@ const Results = () => {
         ? `Wellness_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}`
         : `University_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}`;
       
-      await generateDynamicPDF(matchData, resultType, userAnswers, title);
+      await generateDynamicPDF(matchData, resultType, userAnswers, title, userProfile);
       
       toast({
         title: "PDF Generated! 📄",
