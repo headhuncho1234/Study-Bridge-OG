@@ -145,7 +145,7 @@ const AIAssistant = () => {
 
         {/* Assistant Features */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold mb-6 text-center">Why Our AI Assistant is Different</h2>
+          <h2 className="text-2xl font-bold mb-6 text-center">What Distinguishes Us From the Rest</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {assistantFeatures.map((feature, index) => (
               <Card key={index} className="hover:shadow-lg transition-shadow">
