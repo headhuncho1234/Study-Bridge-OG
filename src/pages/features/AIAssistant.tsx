@@ -137,11 +137,9 @@ const AIAssistant = () => {
               </div>
             </div>
             
-            <Link to="/#chatbot">
-              <Button variant="secondary" size="lg" className="mt-4">
-                Start Chatting Now
-              </Button>
-            </Link>
+            <Button variant="secondary" size="lg" className="mt-4">
+              Chat with Assistant
+            </Button>
           </CardContent>
         </Card>
 
@@ -271,11 +269,9 @@ const AIAssistant = () => {
               Don't wait for office hours or email responses. Get immediate, accurate answers to all your 
               study abroad questions from our intelligent AI assistant.
             </p>
-            <Link to="/#chatbot">
-              <Button size="lg" className="mr-4">
-                Start Chatting
-              </Button>
-            </Link>
+            <Button size="lg" className="mr-4">
+              Start Chatting
+            </Button>
             <Button variant="outline" size="lg">
               See More Examples
             </Button>

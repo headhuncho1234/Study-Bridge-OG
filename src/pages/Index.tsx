@@ -1,9 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
-import ChatBot from "@/components/ChatBot";
 import StudentIntake from "@/components/StudentIntake";
-import ChatAssistant from "@/components/ChatAssistant";
 import EnhancedResultsDisplay from "@/components/questionnaire/EnhancedResultsDisplay";
 
 const Index = () => {
@@ -16,10 +14,6 @@ const Index = () => {
         
         <div id="features">
           <Features />
-        </div>
-        
-        <div id="chatbot">
-          <ChatBot />
         </div>
         
         <div id="intake">
@@ -76,9 +70,6 @@ const Index = () => {
           </div>
         </section>
       </main>
-      
-      {/* 24/7 Chat Assistant */}
-      <ChatAssistant />
       
       <footer className="bg-muted/30 py-12 px-4">
         <div className="max-w-6xl mx-auto text-center">
