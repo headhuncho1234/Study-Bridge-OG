@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, DollarSign, Clock, Users, ExternalLink, Home, Award, FileText, Info } from "lucide-react";
+import { Star, MapPin, DollarSign, Clock, Users, ExternalLink, Home, Award, FileText, Info, Bookmark, BookmarkCheck } from "lucide-react";
 import SchoolDetailModal from "./SchoolDetailModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface DetailedInfo {
   campus_life: string;
@@ -117,24 +120,147 @@ interface ResultsDisplayProps {
 }
 
 const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [selectedSchool, setSelectedSchool] = useState<UniversityMatch | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [savedSchools, setSavedSchools] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      loadSavedSchools();
+    }
+  }, [user]);
+
+  const loadSavedSchools = async () => {
+    if (!user) return;
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('questionnaire_results')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile?.questionnaire_results) {
+        const results = profile.questionnaire_results as any;
+        setSavedSchools(results.saved_schools || []);
+      }
+    } catch (error) {
+      console.error('Error loading saved schools:', error);
+    }
+  };
+
+  const toggleSaveSchool = async (schoolName: string) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to save schools to your profile.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('questionnaire_results')
+        .eq('user_id', user.id)
+        .single();
+
+      const currentResults = (profile?.questionnaire_results as any) || {};
+      const currentSaved = currentResults.saved_schools || [];
+      
+      let newSaved;
+      if (currentSaved.includes(schoolName)) {
+        newSaved = currentSaved.filter((name: string) => name !== schoolName);
+      } else {
+        newSaved = [...currentSaved, schoolName];
+      }
+
+      const updatedResults = {
+        ...currentResults,
+        saved_schools: newSaved
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ questionnaire_results: updatedResults })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setSavedSchools(newSaved);
+      
+      toast({
+        title: currentSaved.includes(schoolName) ? "School removed" : "School saved",
+        description: currentSaved.includes(schoolName) 
+          ? "School removed from your saved list" 
+          : "School saved to your profile"
+      });
+
+    } catch (error) {
+      console.error('Error saving school:', error);
+      toast({
+        title: "Error",
+        description: "Could not save school. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleSchoolClick = (university: UniversityMatch) => {
     setSelectedSchool(university);
     setIsModalOpen(true);
   };
 
+  const formatTuition = (tuition: string) => {
+    // Extract number from tuition string and format as currency
+    const numMatch = tuition.match(/[\d,]+/);
+    if (numMatch) {
+      const num = parseInt(numMatch[0].replace(/,/g, ''));
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(num);
+    }
+    return tuition;
+  };
+
+  const getDifficultyColor = (acceptanceRate: string) => {
+    const rate = parseFloat(acceptanceRate.replace('%', ''));
+    if (rate < 15) return 'border-red-500 text-red-600 bg-red-50';
+    if (rate < 30) return 'border-orange-500 text-orange-600 bg-orange-50';
+    if (rate < 50) return 'border-yellow-500 text-yellow-600 bg-yellow-50';
+    return 'border-green-500 text-green-600 bg-green-50';
+  };
+
   const renderUniversityResults = (results: UniversityResults) => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+          Your Personalized University Matches
+        </h2>
+        <p className="text-muted-foreground">
+          Based on your preferences, here are universities that match your criteria
+        </p>
+      </div>
+
+      <div className="grid gap-6">
         {results.matches?.map((university, index) => (
-          <Card key={index} className="hover:shadow-card transition-all duration-300 cursor-pointer" onClick={() => handleSchoolClick(university)}>
+          <Card key={index} className="hover:shadow-card transition-all duration-300 border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <CardTitle className="text-lg font-semibold text-primary hover:underline">
-                    {university.name}
+                  <CardTitle className="text-xl font-bold text-primary hover:underline cursor-pointer">
+                    <button 
+                      onClick={() => handleSchoolClick(university)}
+                      className="text-left hover:underline"
+                    >
+                      {university.name}
+                    </button>
                   </CardTitle>
                   <div className="flex items-center gap-2 text-muted-foreground mt-1">
                     <MapPin className="h-4 w-4" />
@@ -146,29 +272,67 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                     </div>
                   )}
                 </div>
-                <Badge variant="secondary" className="ml-2">
-                  {university.match_score}% Match
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="ml-2">
+                    {university.match_score}% Match
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSaveSchool(university.name);
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    {savedSchools.includes(university.name) ? (
+                      <BookmarkCheck className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Bookmark className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Tuition:</span>
-                  <div className="font-medium">{university.tuition}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                  <div>
+                    <div className="text-muted-foreground">Tuition</div>
+                    <div className="font-bold text-green-600">
+                      {formatTuition(university.tuition)}/year
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Acceptance Rate:</span>
-                  <div className="font-medium">{university.acceptance_rate}</div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-600" />
+                  <div>
+                    <div className="text-muted-foreground">Acceptance Rate</div>
+                    <Badge 
+                      variant="outline" 
+                      className={getDifficultyColor(university.acceptance_rate)}
+                    >
+                      {university.acceptance_rate}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Campus Size:</span>
-                  <div className="font-medium">{university.campus_size}</div>
+                <div className="flex items-center gap-2">
+                  <Home className="h-4 w-4 text-orange-600" />
+                  <div>
+                    <div className="text-muted-foreground">Campus Size</div>
+                    <div className="font-medium">{university.campus_size}</div>
+                  </div>
                 </div>
                 {university.student_body && (
-                  <div>
-                    <span className="text-muted-foreground">Student Body:</span>
-                    <div className="font-medium">{university.student_body.toLocaleString()} students</div>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-purple-600" />
+                    <div>
+                      <div className="text-muted-foreground">Students</div>
+                      <div className="font-medium">
+                        {university.student_body.toLocaleString()}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -180,27 +344,102 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                 </div>
               )}
               
-              <p className="text-sm text-muted-foreground">{university.description}</p>
+              <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                {university.description}
+              </p>
               
-              <div className="flex flex-wrap gap-1">
-                {university.programs?.slice(0, 3).map((program, idx) => (
-                  <Badge key={idx} variant="outline" className="text-xs">
-                    {program}
-                  </Badge>
-                ))}
+              <div>
+                <div className="text-sm text-muted-foreground mb-2">Available Programs:</div>
+                <div className="flex flex-wrap gap-1">
+                  {university.programs?.slice(0, 4).map((program, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {program}
+                    </Badge>
+                  ))}
+                  {university.programs && university.programs.length > 4 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{university.programs.length - 4} more
+                    </Badge>
+                  )}
+                </div>
               </div>
+
+              {university.school_scholarships && (
+                <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-md">
+                  <div className="text-sm font-medium text-green-800 dark:text-green-200 mb-2 flex items-center gap-1">
+                    <Award className="h-4 w-4" />
+                    Available Scholarships:
+                  </div>
+                  {university.school_scholarships.merit_scholarships?.slice(0, 2).map((scholarship, idx) => (
+                    <div key={idx} className="text-xs text-green-700 dark:text-green-300">
+                      • {scholarship.name}: {scholarship.amount} ({scholarship.eligibility})
+                    </div>
+                  ))}
+                  {university.school_scholarships.need_based?.slice(0, 1).map((scholarship, idx) => (
+                    <div key={idx} className="text-xs text-green-700 dark:text-green-300">
+                      • {scholarship.name}: {scholarship.amount} ({scholarship.eligibility})
+                    </div>
+                  ))}
+                  {university.school_scholarships.program_specific?.slice(0, 1).map((scholarship, idx) => (
+                    <div key={idx} className="text-xs text-green-700 dark:text-green-300">
+                      • {scholarship.name}: {scholarship.amount} ({scholarship.eligibility})
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {university.detailed_info && (
+                <div className="bg-accent/10 p-3 rounded-md">
+                  <div className="text-sm font-medium text-primary mb-2">Additional Information:</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    {university.detailed_info.student_faculty_ratio && (
+                      <div>Student-Faculty Ratio: {university.detailed_info.student_faculty_ratio}</div>
+                    )}
+                    {university.detailed_info.retention_rate && (
+                      <div>Retention Rate: {university.detailed_info.retention_rate}</div>
+                    )}
+                    {university.detailed_info.graduation_rate && (
+                      <div>Graduation Rate: {university.detailed_info.graduation_rate}</div>
+                    )}
+                  </div>
+                  {university.detailed_info.facilities && university.detailed_info.facilities.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs font-medium mb-1">Key Facilities:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {university.detailed_info.facilities.slice(0, 3).map((facility, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {facility}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               
-              <Button 
-                className="w-full" 
-                variant="outline"
-                onClick={() => {
-                  const url = university.website || `https://www.google.com/search?q=${encodeURIComponent(university.name + ' official website')}`;
-                  window.open(url, '_blank', 'noopener,noreferrer');
-                }}
-              >
-                <Info className="h-4 w-4 mr-2" />
-                Visit Official Website
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const url = university.website || `https://www.google.com/search?q=${encodeURIComponent(university.name + ' official website')}`;
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="flex-1"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Visit Official Website
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSaveSchool(university.name);
+                  }}
+                  className="px-4"
+                >
+                  {savedSchools.includes(university.name) ? 'Saved' : 'Save'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -216,41 +455,67 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
 
   const renderScholarshipResults = (results: ScholarshipResults) => (
     <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+          Your Scholarship Opportunities
+        </h2>
+        <p className="text-muted-foreground">
+          Personalized scholarship matches based on your academic profile and achievements
+        </p>
+      </div>
+
       <div className="grid gap-6">
         {results.scholarships?.map((scholarship, index) => (
-          <Card key={index} className="hover:shadow-card transition-all duration-300">
+          <Card key={index} className="hover:shadow-card transition-all duration-300 border-l-4 border-l-accent">
             <CardHeader>
               <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Award className="h-5 w-5 text-accent" />
+                <div className="flex-1">
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    <Award className="h-6 w-6 text-accent" />
                     {scholarship.name}
                   </CardTitle>
                   <p className="text-muted-foreground text-sm mt-1">{scholarship.sponsor}</p>
                 </div>
-                <Badge variant="secondary" className="ml-2">
-                  {scholarship.match_score}% Match
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="ml-2">
+                    {scholarship.match_score}% Match
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSaveSchool(scholarship.name);
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    {savedSchools.includes(scholarship.name) ? (
+                      <BookmarkCheck className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Bookmark className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-success" />
+                  <DollarSign className="h-5 w-5 text-green-600" />
                   <div>
                     <div className="text-sm text-muted-foreground">Award Amount</div>
-                    <div className="font-medium">{scholarship.amount}</div>
+                    <div className="font-bold text-green-600">{scholarship.amount}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" />
+                  <Clock className="h-5 w-5 text-primary" />
                   <div>
                     <div className="text-sm text-muted-foreground">Deadline</div>
                     <div className="font-medium">{scholarship.deadline}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-secondary" />
+                  <FileText className="h-5 w-5 text-secondary" />
                   <div>
                     <div className="text-sm text-muted-foreground">Essays Required</div>
                     <div className="font-medium">{scholarship.essays_required}</div>
@@ -260,9 +525,9 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
               
               <div>
                 <Badge variant="outline" className={
-                  scholarship.difficulty === 'Low' ? 'border-success text-success' :
-                  scholarship.difficulty === 'Medium' ? 'border-primary text-primary' :
-                  'border-destructive text-destructive'
+                  scholarship.difficulty === 'Low' ? 'border-green-500 text-green-600 bg-green-50' :
+                  scholarship.difficulty === 'Medium' ? 'border-yellow-500 text-yellow-600 bg-yellow-50' :
+                  'border-red-500 text-red-600 bg-red-50'
                 }>
                   {scholarship.difficulty} Difficulty
                 </Badge>
@@ -282,29 +547,39 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
               </div>
               
               <div className="bg-accent/10 p-3 rounded-md">
-                <div className="text-sm font-medium mb-1">Application Tip:</div>
+                <div className="text-sm font-medium text-primary mb-1">💡 Application Strategy:</div>
                 <p className="text-sm text-muted-foreground">{scholarship.tips}</p>
               </div>
               
-              {scholarship.application_link ? (
-                <Button 
-                  className="w-full" 
+              <div className="flex gap-2">
+                {scholarship.application_link ? (
+                  <Button 
+                    onClick={() => window.open(scholarship.application_link, '_blank', 'noopener,noreferrer')}
+                    className="flex-1"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Apply Now
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(scholarship.name + ' scholarship application')}`, '_blank', 'noopener,noreferrer')}
+                    className="flex-1"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Search Application
+                  </Button>
+                )}
+                <Button
                   variant="outline"
-                  onClick={() => window.open(scholarship.application_link, '_blank', 'noopener,noreferrer')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSaveSchool(scholarship.name);
+                  }}
+                  className="px-4"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Apply Now
+                  {savedSchools.includes(scholarship.name) ? 'Saved' : 'Save'}
                 </Button>
-              ) : (
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(scholarship.name + ' scholarship application')}`, '_blank', 'noopener,noreferrer')}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Search Application
-                </Button>
-              )}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -314,6 +589,15 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
 
   const renderHousingResults = (results: HousingResults, isInternational = false) => (
     <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+          Your Housing Recommendations
+        </h2>
+        <p className="text-muted-foreground">
+          Curated housing options based on your preferences and budget
+        </p>
+      </div>
+
       {/* Guarantor Disclaimer for International Students */}
       {isInternational && (
         <Card className="border-warning bg-warning/5">
@@ -375,21 +659,38 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
       
       <div className="grid gap-6">
         {results.recommendations?.map((housing, index) => (
-          <Card key={index} className="hover:shadow-card transition-all duration-300">
+          <Card key={index} className="hover:shadow-card transition-all duration-300 border-l-4 border-l-secondary">
             <CardHeader>
               <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Home className="h-5 w-5 text-primary" />
+                <div className="flex-1">
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    <Home className="h-6 w-6 text-primary" />
                     {housing.name}
                   </CardTitle>
                   {housing.address && (
                     <p className="text-muted-foreground text-sm mt-1">{housing.address}</p>
                   )}
                 </div>
-                <Badge variant="secondary" className="ml-2">
-                  {housing.match_score}% Match
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="ml-2">
+                    {housing.match_score}% Match
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSaveSchool(housing.name);
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    {savedSchools.includes(housing.name) ? (
+                      <BookmarkCheck className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Bookmark className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -399,10 +700,10 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
                   <div className="text-sm font-medium text-accent mb-1">Guarantor Requirements:</div>
                   <p className="text-xs text-muted-foreground">
                     {housing.type === 'Dormitory' || housing.type === 'On-Campus' 
-                      ? 'No guarantor required - University housing'
+                      ? '✅ No guarantor required - University housing'
                       : housing.type === 'Homestay'
-                      ? 'Guarantor may be waived - Contact host family'
-                      : 'Guarantor required - Consider third-party services'
+                      ? '⚠️ Guarantor may be waived - Contact host family'
+                      : '❗ Guarantor required - Consider third-party services'
                     }
                   </p>
                 </div>
@@ -410,21 +711,21 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-success" />
+                  <DollarSign className="h-5 w-5 text-green-600" />
                   <div>
                     <div className="text-sm text-muted-foreground">Monthly Rent</div>
-                    <div className="font-medium">{housing.rent}</div>
+                    <div className="font-bold text-green-600">{housing.rent}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" />
+                  <MapPin className="h-5 w-5 text-primary" />
                   <div>
                     <div className="text-sm text-muted-foreground">Distance</div>
                     <div className="font-medium">{housing.distance}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Home className="h-4 w-4 text-secondary" />
+                  <Home className="h-5 w-5 text-secondary" />
                   <div>
                     <div className="text-sm text-muted-foreground">Type</div>
                     <div className="font-medium">{housing.type}</div>
@@ -443,47 +744,70 @@ const ResultsDisplay = ({ data, source }: ResultsDisplayProps) => {
               <div>
                 <div className="text-sm text-muted-foreground mb-2">Amenities:</div>
                 <div className="flex flex-wrap gap-1">
-                  {housing.amenities.map((amenity, idx) => (
+                  {housing.amenities.slice(0, 6).map((amenity, idx) => (
                     <Badge key={idx} variant="outline" className="text-xs">
                       {amenity}
                     </Badge>
                   ))}
+                  {housing.amenities.length > 6 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{housing.amenities.length - 6} more
+                    </Badge>
+                  )}
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {housing.pros.length > 0 && (
-                  <div>
-                    <div className="text-sm font-medium text-success mb-1">Pros:</div>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      {housing.pros.map((pro, idx) => (
-                        <li key={idx} className="flex items-center gap-1">
-                          <span className="w-1 h-1 bg-success rounded-full"></span>
-                          {pro}
-                        </li>
-                      ))}
-                    </ul>
+
+              {housing.pros && housing.pros.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium text-green-600 mb-2">✅ Pros:</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                    {housing.pros.slice(0, 4).map((pro, idx) => (
+                      <div key={idx} className="text-xs text-green-700 flex items-center gap-1">
+                        <span className="w-1 h-1 bg-green-600 rounded-full"></span>
+                        {pro}
+                      </div>
+                    ))}
                   </div>
-                )}
-                
-                {housing.cons.length > 0 && (
-                  <div>
-                    <div className="text-sm font-medium text-destructive mb-1">Cons:</div>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      {housing.cons.map((con, idx) => (
-                        <li key={idx} className="flex items-center gap-1">
-                          <span className="w-1 h-1 bg-destructive rounded-full"></span>
-                          {con}
-                        </li>
-                      ))}
-                    </ul>
+                </div>
+              )}
+
+              {housing.cons && housing.cons.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium text-red-600 mb-2">⚠️ Considerations:</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                    {housing.cons.slice(0, 4).map((con, idx) => (
+                      <div key={idx} className="text-xs text-red-700 flex items-center gap-1">
+                        <span className="w-1 h-1 bg-red-600 rounded-full"></span>
+                        {con}
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
               
-              <div className="bg-primary/10 p-3 rounded-md">
-                <div className="text-sm font-medium mb-1">Contact:</div>
+              <div className="bg-muted/30 p-3 rounded-md">
+                <div className="text-sm font-medium mb-1">Contact Information:</div>
                 <p className="text-sm text-muted-foreground">{housing.contact}</p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(housing.name + ' ' + housing.address)}`, '_blank', 'noopener,noreferrer')}
+                  className="flex-1"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Search Online
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSaveSchool(housing.name);
+                  }}
+                  className="px-4"
+                >
+                  {savedSchools.includes(housing.name) ? 'Saved' : 'Save'}
+                </Button>
               </div>
             </CardContent>
           </Card>

@@ -162,6 +162,8 @@ export class DynamicPDFGenerator {
       this.addText(`Field of Study: ${userAnswers.field_of_study || 'Not specified'}`);
       this.addText(`Budget Range: ${userAnswers.budget || 'Not specified'}`);
       this.addText(`Preferred Location: ${userAnswers.location || 'Not specified'}`);
+      this.addText(`GPA: ${userAnswers.gpa || 'Not specified'}`);
+      this.addText(`Test Scores: ${userAnswers.test_scores || 'Not specified'}`);
       this.currentY += 5;
     }
     
@@ -175,9 +177,9 @@ export class DynamicPDFGenerator {
     this.addSubtitle('Your Top University Matches');
     
     data.matches?.slice(0, 10).forEach((university: UniversityMatch, index: number) => {
-      this.checkPageBreak(40);
+      this.checkPageBreak(60);
       
-      this.addText(`${index + 1}. ${university.name}`, 12, 'bold');
+      this.addText(`${index + 1}. ${university.name}`, 14, 'bold');
       this.addText(`📍 ${university.location} • 🎯 ${university.match_score}% Match`);
       
       if (university.ranking) {
@@ -188,41 +190,145 @@ export class DynamicPDFGenerator {
       this.addText(`📊 Acceptance Rate: ${university.acceptance_rate}`);
       this.addText(`👥 Campus Size: ${university.campus_size}`);
       
-      if (university.personalized_summary) {
-        this.addText(`Why This Match: ${university.personalized_summary}`, 10, 'bold');
+      if (university.student_body) {
+        this.addText(`👨‍🎓 Student Body: ${university.student_body.toLocaleString()} students`);
       }
       
-      this.addText(`Description: ${university.description}`);
+      if (university.personalized_summary) {
+        this.addText(`🎯 Why This Match:`, 11, 'bold');
+        this.addText(`${university.personalized_summary}`);
+      }
+      
+      this.addText(`📖 Description:`, 11, 'bold');
+      this.addText(`${university.description}`);
       
       // Programs
       if (university.programs && university.programs.length > 0) {
-        this.addText('Top Programs:', 10, 'bold');
-        university.programs.slice(0, 5).forEach(program => {
+        this.addText('🎓 Available Programs:', 11, 'bold');
+        university.programs.slice(0, 8).forEach(program => {
           this.addBulletPoint(program);
         });
+        if (university.programs.length > 8) {
+          this.addText(`... and ${university.programs.length - 8} more programs`);
+        }
+      }
+
+      // Detailed Information
+      if ((university as any).detailed_info) {
+        const info = (university as any).detailed_info;
+        this.addText('📊 Academic Details:', 11, 'bold');
+        if (info.student_faculty_ratio) {
+          this.addBulletPoint(`Student-Faculty Ratio: ${info.student_faculty_ratio}`);
+        }
+        if (info.retention_rate) {
+          this.addBulletPoint(`Retention Rate: ${info.retention_rate}`);
+        }
+        if (info.graduation_rate) {
+          this.addBulletPoint(`Graduation Rate: ${info.graduation_rate}`);
+        }
+        
+        if (info.facilities && info.facilities.length > 0) {
+          this.addText('🏢 Key Facilities:', 11, 'bold');
+          info.facilities.slice(0, 5).forEach((facility: string) => {
+            this.addBulletPoint(facility);
+          });
+        }
+
+        if (info.research_opportunities) {
+          this.addText('🔬 Research Opportunities:', 11, 'bold');
+          this.addText(info.research_opportunities);
+        }
+
+        if (info.career_services) {
+          this.addText('💼 Career Services:', 11, 'bold');
+          this.addText(info.career_services);
+        }
+
+        if (info.notable_alumni && info.notable_alumni.length > 0) {
+          this.addText('🌟 Notable Alumni:', 11, 'bold');
+          info.notable_alumni.slice(0, 3).forEach((alumni: string) => {
+            this.addBulletPoint(alumni);
+          });
+        }
+      }
+
+      // School Scholarships
+      if ((university as any).school_scholarships) {
+        const scholarships = (university as any).school_scholarships;
+        this.addText('💰 Available Scholarships:', 11, 'bold');
+        
+        if (scholarships.merit_scholarships && scholarships.merit_scholarships.length > 0) {
+          this.addText('Merit-Based Scholarships:', 10, 'bold');
+          scholarships.merit_scholarships.slice(0, 3).forEach((scholarship: any) => {
+            this.addBulletPoint(`${scholarship.name}: ${scholarship.amount} - ${scholarship.eligibility}`);
+            if (scholarship.deadline) {
+              this.addText(`   Deadline: ${scholarship.deadline}`, 9);
+            }
+          });
+        }
+
+        if (scholarships.need_based && scholarships.need_based.length > 0) {
+          this.addText('Need-Based Scholarships:', 10, 'bold');
+          scholarships.need_based.slice(0, 2).forEach((scholarship: any) => {
+            this.addBulletPoint(`${scholarship.name}: ${scholarship.amount} - ${scholarship.eligibility}`);
+          });
+        }
+
+        if (scholarships.program_specific && scholarships.program_specific.length > 0) {
+          this.addText('Program-Specific Scholarships:', 10, 'bold');
+          scholarships.program_specific.slice(0, 2).forEach((scholarship: any) => {
+            this.addBulletPoint(`${scholarship.name}: ${scholarship.amount} - ${scholarship.eligibility}`);
+          });
+        }
       }
       
       // Requirements
       if (university.requirements && university.requirements.length > 0) {
-        this.addText('Requirements:', 10, 'bold');
-        university.requirements.slice(0, 5).forEach(req => {
+        this.addText('📋 Application Requirements:', 11, 'bold');
+        university.requirements.slice(0, 8).forEach(req => {
           this.addBulletPoint(req);
         });
       }
       
-      this.addText(`Application Deadline: ${university.application_deadline}`);
+      this.addText(`📅 Application Deadline: ${university.application_deadline}`, 10, 'bold');
       
       if (university.website) {
-        this.addText(`Website: ${university.website}`);
+        this.addText(`🌐 Website: ${university.website}`);
       }
       
-      this.currentY += 10;
+      this.currentY += 15;
     });
+    
+    // Application Timeline
+    if (data.timeline) {
+      this.addSubtitle('Application Timeline');
+      if (typeof data.timeline === 'object') {
+        Object.entries(data.timeline).forEach(([period, tasks]: [string, any]) => {
+          this.addText(period, 11, 'bold');
+          if (Array.isArray(tasks)) {
+            tasks.forEach(task => this.addBulletPoint(task));
+          } else if (typeof tasks === 'string') {
+            this.addText(tasks);
+          }
+        });
+      }
+    }
     
     // Application Tips
     if (data.application_tips) {
-      this.addSubtitle('Application Strategy');
-      this.addText(JSON.stringify(data.application_tips));
+      this.addSubtitle('Application Strategy & Tips');
+      if (typeof data.application_tips === 'object') {
+        Object.entries(data.application_tips).forEach(([category, tips]: [string, any]) => {
+          this.addText(category.replace(/_/g, ' ').toUpperCase(), 11, 'bold');
+          if (Array.isArray(tips)) {
+            tips.forEach(tip => this.addBulletPoint(tip));
+          } else if (typeof tips === 'string') {
+            this.addText(tips);
+          }
+        });
+      } else {
+        this.addText(data.application_tips);
+      }
     }
     
     this.addFooter();
@@ -239,11 +345,29 @@ export class DynamicPDFGenerator {
       this.addText(`GPA: ${userAnswers.gpa || 'Not specified'}`);
       this.addText(`Field of Study: ${userAnswers.field_of_study || 'Not specified'}`);
       this.addText(`Financial Need: ${userAnswers.financial_need || 'Not specified'}`);
+      this.addText(`Extracurricular Activities: ${userAnswers.extracurriculars || 'Not specified'}`);
+      this.addText(`Awards/Honors: ${userAnswers.awards || 'Not specified'}`);
       this.currentY += 5;
     }
     
-    // Match Score Chart
+    // Summary Statistics
     if (data.scholarships && data.scholarships.length > 0) {
+      this.addSubtitle('Scholarship Opportunity Summary');
+      const totalAmount = data.scholarships.reduce((sum: number, s: ScholarshipMatch) => {
+        const amount = s.amount.replace(/[^\d]/g, '');
+        return sum + (parseInt(amount) || 0);
+      }, 0);
+      
+      this.addText(`🎯 Total Scholarships Found: ${data.scholarships.length}`);
+      if (totalAmount > 0) {
+        this.addText(`💰 Total Potential Value: $${totalAmount.toLocaleString()}`);
+      }
+      
+      const avgMatch = data.scholarships.reduce((sum: number, s: ScholarshipMatch) => sum + s.match_score, 0) / data.scholarships.length;
+      this.addText(`📊 Average Match Score: ${avgMatch.toFixed(1)}%`);
+      this.currentY += 5;
+      
+      // Match Score Chart
       this.addSubtitle('Scholarship Match Overview');
       this.addScoreChart(data.scholarships.map((s: ScholarshipMatch) => ({
         name: s.name,
@@ -255,39 +379,92 @@ export class DynamicPDFGenerator {
     this.addSubtitle('Your Scholarship Matches');
     
     data.scholarships?.forEach((scholarship: ScholarshipMatch, index: number) => {
-      this.checkPageBreak(35);
+      this.checkPageBreak(50);
       
-      this.addText(`${index + 1}. ${scholarship.name}`, 12, 'bold');
-      this.addText(`Sponsor: ${scholarship.sponsor}`);
+      this.addText(`${index + 1}. ${scholarship.name}`, 14, 'bold');
+      this.addText(`🏢 Sponsor: ${scholarship.sponsor}`);
       this.addText(`🎯 ${scholarship.match_score}% Match • 💰 ${scholarship.amount}`);
-      this.addText(`📅 Deadline: ${scholarship.deadline}`);
+      this.addText(`📅 Deadline: ${scholarship.deadline}`, 10, 'bold');
       this.addText(`📝 Essays Required: ${scholarship.essays_required}`);
-      this.addText(`Difficulty: ${scholarship.difficulty}`, 10, 'bold');
+      
+      // Difficulty badge
+      const difficultyEmoji = scholarship.difficulty === 'Low' ? '🟢' : 
+                            scholarship.difficulty === 'Medium' ? '🟡' : '🔴';
+      this.addText(`${difficultyEmoji} Difficulty: ${scholarship.difficulty}`, 10, 'bold');
       
       // Requirements
       if (scholarship.requirements && scholarship.requirements.length > 0) {
-        this.addText('Requirements:', 10, 'bold');
+        this.addText('📋 Requirements:', 11, 'bold');
         scholarship.requirements.forEach(req => {
           this.addBulletPoint(req);
         });
       }
       
-      // Tips
-      this.addText('Application Tip:', 10, 'bold');
+      // Application Strategy
+      this.addText('💡 Application Strategy:', 11, 'bold');
       this.addText(scholarship.tips);
       
-      if (scholarship.application_link) {
-        this.addText(`Apply: ${scholarship.application_link}`);
+      // Application timeline
+      const deadlineDate = new Date(scholarship.deadline);
+      const today = new Date();
+      const daysUntilDeadline = Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+      
+      if (daysUntilDeadline > 0) {
+        this.addText(`⏰ Days Until Deadline: ${daysUntilDeadline}`, 10, 'bold');
+        
+        if (daysUntilDeadline <= 30) {
+          this.addText('🚨 URGENT: Less than 30 days remaining!', 10, 'bold');
+        } else if (daysUntilDeadline <= 60) {
+          this.addText('⚠️ Start preparing now - Less than 60 days remaining!', 10, 'bold');
+        }
       }
       
-      this.currentY += 8;
+      if (scholarship.application_link) {
+        this.addText(`🔗 Apply at: ${scholarship.application_link}`);
+      }
+      
+      this.currentY += 12;
     });
     
-    // Strategy
+    // Application Strategy Section
     if (data.strategy) {
-      this.addSubtitle('Application Strategy');
-      this.addText(JSON.stringify(data.strategy));
+      this.addSubtitle('Comprehensive Application Strategy');
+      if (typeof data.strategy === 'object') {
+        Object.entries(data.strategy).forEach(([category, advice]: [string, any]) => {
+          this.addText(category.replace(/_/g, ' ').toUpperCase(), 11, 'bold');
+          if (Array.isArray(advice)) {
+            advice.forEach(item => this.addBulletPoint(item));
+          } else if (typeof advice === 'string') {
+            this.addText(advice);
+          }
+        });
+      }
     }
+
+    // Essay Guidance
+    if (data.essay_guidance) {
+      this.addSubtitle('Essay Writing Guidance');
+      if (typeof data.essay_guidance === 'object') {
+        Object.entries(data.essay_guidance).forEach(([section, guidance]: [string, any]) => {
+          this.addText(section.replace(/_/g, ' ').toUpperCase(), 11, 'bold');
+          if (Array.isArray(guidance)) {
+            guidance.forEach(tip => this.addBulletPoint(tip));
+          } else if (typeof guidance === 'string') {
+            this.addText(guidance);
+          }
+        });
+      }
+    }
+
+    // General Tips
+    this.addSubtitle('General Scholarship Application Tips');
+    this.addBulletPoint('Start applications early - many scholarships have rolling deadlines');
+    this.addBulletPoint('Tailor each application to the specific scholarship requirements');
+    this.addBulletPoint('Keep track of all deadlines using a calendar or spreadsheet');
+    this.addBulletPoint('Request recommendation letters at least 4-6 weeks in advance');
+    this.addBulletPoint('Proofread all materials multiple times before submitting');
+    this.addBulletPoint('Apply to multiple scholarships to increase your chances');
+    this.addBulletPoint('Follow up appropriately and express gratitude');
     
     this.addFooter();
     return this.doc;
