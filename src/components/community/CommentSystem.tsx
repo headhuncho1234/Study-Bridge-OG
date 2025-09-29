@@ -74,7 +74,7 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
         .from('comments')
         .select(`
           *,
-          profiles!inner(username, display_name, avatar_url)
+          profiles(username, display_name, avatar_url)
         `)
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
@@ -98,17 +98,40 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
         }
       });
 
-      // Add replies to their parent comments
-      data?.forEach(comment => {
-        if (comment.parent_comment_id) {
-          const parent = commentMap.get(comment.parent_comment_id);
-          if (parent) {
-            parent.replies.push(commentMap.get(comment.id));
+      // Add replies to their parent comments recursively
+      const addRepliesToParent = (parentId: string) => {
+        data?.forEach(comment => {
+          if (comment.parent_comment_id === parentId) {
+            const parent = commentMap.get(parentId);
+            const child = commentMap.get(comment.id);
+            if (parent && child) {
+              parent.replies.push(child);
+              // Recursively add nested replies
+              addRepliesToParent(comment.id);
+            }
           }
-        }
+        });
+      };
+
+      // Build the tree starting from root comments
+      rootComments.forEach(comment => {
+        addRepliesToParent(comment.id);
       });
 
       setComments(rootComments);
+      
+      // Auto-expand all comments that have replies
+      const newExpanded = new Set<string>();
+      const expandCommentsWithReplies = (comments: Comment[]) => {
+        comments.forEach(comment => {
+          if (comment.replies && comment.replies.length > 0) {
+            newExpanded.add(comment.id);
+            expandCommentsWithReplies(comment.replies);
+          }
+        });
+      };
+      expandCommentsWithReplies(rootComments);
+      setExpandedComments(newExpanded);
     } catch (error) {
       console.error('Error loading comments:', error);
     }
