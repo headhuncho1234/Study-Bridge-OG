@@ -19,4 +19,10 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    target: 'es2020', // Target modern browsers to avoid unnecessary transpilation
+  },
+  esbuild: {
+    target: 'es2020', // Ensure esbuild also targets modern browsers
+  },
 }));
