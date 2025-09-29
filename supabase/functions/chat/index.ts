@@ -20,7 +20,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { message } = await req.json();
+    const { message, context, session_history, user_profile } = await req.json();
     
     if (!message) {
       console.error('Message is required');
@@ -31,6 +31,9 @@ serve(async (req) => {
 
     // Check if this is a structured matching request (contains schema/JSON instructions)
     const isStructuredMatching = message.includes('questionnaire data') || message.includes('JSON') || message.includes('matches') || message.includes('scholarship') || message.includes('housing') || message.includes('visa');
+    
+    // Homepage assistant context
+    const isHomepageAssistant = context === 'homepage_assistant';
     
 const systemPrompt = isStructuredMatching 
       ? `You are StudyBridge AI, a specialized assistant for international students studying in the U.S. You generate comprehensive JSON responses for matching requests.
@@ -110,15 +113,16 @@ CRITICAL: Always return exactly 5-7 university matches. Include accurate U.S. Ne
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           { 
             role: 'system', 
             content: systemPrompt
           },
+          ...(session_history || []),
           { role: 'user', content: message }
         ],
-        max_tokens: 4000,
+        max_tokens: isHomepageAssistant ? 800 : 4000,
         temperature: 0.2,
       }),
     });

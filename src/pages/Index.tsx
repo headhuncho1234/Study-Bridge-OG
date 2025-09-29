@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import StudentIntake from "@/components/StudentIntake";
 import EnhancedResultsDisplay from "@/components/questionnaire/EnhancedResultsDisplay";
+import HomepageAIAssistant from "@/components/HomepageAIAssistant";
 
 const Index = () => {
   return (
@@ -19,6 +20,9 @@ const Index = () => {
         <div id="intake">
           <StudentIntake />
         </div>
+
+        {/* AI-Powered Student Assistant */}
+        <HomepageAIAssistant />
 
         {/* Enhanced Questionnaire Results */}
         <section className="py-16 px-4">
