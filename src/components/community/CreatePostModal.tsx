@@ -46,8 +46,10 @@ const CreatePostModal = ({
   onSubmit, 
   prefillData,
   defaultChannel = 'general',
-  channels 
+  channels = [] 
 }: CreatePostModalProps) => {
+  // Add defensive check for channels array
+  const safeChannels = Array.isArray(channels) ? channels : [];
   const [title, setTitle] = useState(prefillData?.title || '');
   const [content, setContent] = useState(prefillData?.content || '');
   const [channel, setChannel] = useState(prefillData?.channel || defaultChannel);
@@ -152,7 +154,7 @@ const CreatePostModal = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {channels.map((ch) => (
+                {safeChannels.map((ch) => (
                   <SelectItem key={ch.id} value={ch.id}>
                     <div className="flex items-center gap-2">
                       {ch.icon}
@@ -160,6 +162,9 @@ const CreatePostModal = ({
                     </div>
                   </SelectItem>
                 ))}
+                {safeChannels.length === 0 && (
+                  <SelectItem value="general">General</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

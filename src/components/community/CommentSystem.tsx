@@ -28,9 +28,11 @@ interface Comment {
 
 interface CommentSystemProps {
   postId: string;
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
-const CommentSystem = ({ postId }: CommentSystemProps) => {
+const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: CommentSystemProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -384,43 +386,70 @@ const CommentSystem = ({ postId }: CommentSystemProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Follow Thread Button */}
-      <div className="flex justify-end">
-        <FollowThreadButton postId={postId} />
-      </div>
-
-      {/* New Comment Form */}
-      <Card>
-        <CardContent className="pt-4">
-          <h3 className="font-semibold mb-4">Add a comment</h3>
-          <Textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Share your thoughts..."
-            className="mb-4"
-          />
-          <Button
-            onClick={() => handleSubmitComment()}
-            disabled={!newComment.trim()}
-          >
-            Post Comment
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Comments List */}
+      {/* Comments List - Always visible */}
       <div className="space-y-4">
         {comments.length > 0 ? (
-          comments.map(comment => renderComment(comment))
+          <>
+            <h4 className="font-semibold text-sm text-muted-foreground">
+              {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
+            </h4>
+            <div className="space-y-3">
+              {/* Show first 2 comments by default, rest when expanded */}
+              {(isExpanded ? comments : comments.slice(0, 2)).map(comment => renderComment(comment))}
+              
+              {!isExpanded && comments.length > 2 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleExpanded}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  Show {comments.length - 2} more comments
+                </Button>
+              )}
+            </div>
+          </>
         ) : (
-          <Card className="text-center py-8">
-            <CardContent>
-              <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No comments yet. Be the first to share your thoughts!</p>
-            </CardContent>
-          </Card>
+          <p className="text-sm text-muted-foreground">No comments yet</p>
         )}
       </div>
+
+      {/* Expanded view with comment form and follow button */}
+      {isExpanded && (
+        <>
+          {/* Follow Thread Button */}
+          <div className="flex justify-end">
+            <FollowThreadButton postId={postId} />
+          </div>
+
+          {/* New Comment Form */}
+          <Card>
+            <CardContent className="pt-4">
+              <h3 className="font-semibold mb-4">Add a comment</h3>
+              <Textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Share your thoughts..."
+                className="mb-4"
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleSubmitComment()}
+                  disabled={!newComment.trim()}
+                >
+                  Post Comment
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={onToggleExpanded}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <AuthModal 
         isOpen={isAuthModalOpen}

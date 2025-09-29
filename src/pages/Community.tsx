@@ -687,11 +687,14 @@ const Community = () => {
                         </div>
                       )}
                       
-                      {expandedPost === post.id && (
-                        <div className="mt-6 pt-6 border-t">
-                          <CommentSystem postId={post.id} />
-                        </div>
-                      )}
+                       {/* Always show comments if there are any, expanded view for comment input */}
+                      <div className="mt-6 pt-6 border-t">
+                        <CommentSystem 
+                          postId={post.id} 
+                          isExpanded={expandedPost === post.id}
+                          onToggleExpanded={() => setExpandedPost(expandedPost === post.id ? null : post.id)}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
