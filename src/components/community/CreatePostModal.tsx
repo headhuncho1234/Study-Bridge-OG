@@ -9,6 +9,7 @@ import 'react-quill/dist/quill.snow.css';
 import '../ReactQuillStyles.css';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { uploadMultipleImages } from "@/utils/imageUpload";
 
 interface Channel {
   id: string;
@@ -54,10 +55,11 @@ const CreatePostModal = ({
   const [content, setContent] = useState(prefillData?.content || '');
   const [channel, setChannel] = useState(prefillData?.channel || defaultChannel);
   const [files, setFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) {
@@ -78,26 +80,47 @@ const CreatePostModal = ({
       return;
     }
 
-    // In a real app, you'd upload the files to a storage service
-    const imageUrls = files.map(file => URL.createObjectURL(file));
-
-    onSubmit({
-      title: title.trim(),
-      content: content.trim(),
-      author: 'User', // This will be overridden by the parent component with real user data
-      authorAvatar: '',
-      tags: [],
-      images: imageUrls,
-      channel,
-      user_id: user.id
-    });
+    setIsUploading(true);
     
-    // Reset form
-    setTitle('');
-    setContent('');
-    setChannel(defaultChannel);
-    setFiles([]);
-    onClose();
+    try {
+      // Upload images to Supabase Storage
+      let imageUrls: string[] = [];
+      if (files.length > 0) {
+        imageUrls = await uploadMultipleImages(files, user.id);
+      }
+
+      onSubmit({
+        title: title.trim(),
+        content: content.trim(),
+        author: 'User',
+        authorAvatar: '',
+        tags: [],
+        images: imageUrls,
+        channel,
+        user_id: user.id
+      });
+      
+      // Reset form
+      setTitle('');
+      setContent('');
+      setChannel(defaultChannel);
+      setFiles([]);
+      onClose();
+      
+      toast({
+        title: "Success",
+        description: "Your post has been created!",
+      });
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload images. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,11 +225,11 @@ const CreatePostModal = ({
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isUploading}>
               Cancel
             </Button>
-            <Button type="submit">
-              Submit Post
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? "Uploading..." : "Submit Post"}
             </Button>
           </div>
         </form>
