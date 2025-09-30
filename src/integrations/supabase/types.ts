@@ -82,6 +82,7 @@ export type Database = {
           created_at: string
           dislikes_count: number | null
           id: string
+          images: string[] | null
           likes_count: number | null
           parent_comment_id: string | null
           post_id: string
@@ -93,6 +94,7 @@ export type Database = {
           created_at?: string
           dislikes_count?: number | null
           id?: string
+          images?: string[] | null
           likes_count?: number | null
           parent_comment_id?: string | null
           post_id: string
@@ -104,6 +106,7 @@ export type Database = {
           created_at?: string
           dislikes_count?: number | null
           id?: string
+          images?: string[] | null
           likes_count?: number | null
           parent_comment_id?: string | null
           post_id?: string

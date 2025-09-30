@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Heart, MessageCircle, ChevronDown, ChevronUp, ImagePlus, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AuthModal from "@/components/auth/AuthModal";
 import FollowThreadButton from "./FollowThreadButton";
+import { uploadMultipleImages } from "@/utils/imageUpload";
+import { Input } from "@/components/ui/input";
 
 interface Comment {
   id: string;
@@ -18,6 +20,7 @@ interface Comment {
   likes_count: number;
   dislikes_count: number;
   parent_comment_id?: string;
+  images?: string[];
   profile?: {
     username: string;
     display_name?: string;
@@ -41,6 +44,10 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [commentImages, setCommentImages] = useState<File[]>([]);
+  const [commentImagePreviews, setCommentImagePreviews] = useState<string[]>([]);
+  const [replyImages, setReplyImages] = useState<File[]>([]);
+  const [replyImagePreviews, setReplyImagePreviews] = useState<string[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -194,18 +201,27 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
     }
 
     const content = parentId ? replyContent : newComment;
+    const images = parentId ? replyImages : commentImages;
+    
     if (!content.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
 
     try {
+      // Upload images if any
+      let imageUrls: string[] = [];
+      if (images.length > 0) {
+        imageUrls = await uploadMultipleImages(images, user.id);
+      }
+
       const { error } = await supabase
         .from('comments')
         .insert({
           post_id: postId,
           parent_comment_id: parentId || null,
           user_id: user.id,
-          content: content.trim()
+          content: content.trim(),
+          images: imageUrls
         });
 
       if (error) throw error;
@@ -214,8 +230,14 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
       if (parentId) {
         setReplyContent("");
         setReplyingTo(null);
+        replyImagePreviews.forEach(url => URL.revokeObjectURL(url));
+        setReplyImages([]);
+        setReplyImagePreviews([]);
       } else {
         setNewComment("");
+        commentImagePreviews.forEach(url => URL.revokeObjectURL(url));
+        setCommentImages([]);
+        setCommentImagePreviews([]);
       }
 
       // Reload comments to get the new one with proper profile data
@@ -230,11 +252,56 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
       console.error('Error posting comment:', error);
       toast({
         title: "Error posting comment",
-        description: "Please try again later.",
+        description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, isReply: boolean) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      
+      if (isReply) {
+        setReplyImages(newFiles);
+      } else {
+        setCommentImages(newFiles);
+      }
+      
+      // Generate preview URLs
+      const previews = newFiles.map(file => URL.createObjectURL(file));
+      
+      if (isReply) {
+        setReplyImagePreviews(previews);
+      } else {
+        setCommentImagePreviews(previews);
+      }
+    }
+  };
+
+  const removeCommentImage = (index: number, isReply: boolean) => {
+    if (isReply) {
+      const newFiles = replyImages.filter((_, i) => i !== index);
+      const newPreviews = replyImagePreviews.filter((_, i) => i !== index);
+      
+      if (replyImagePreviews[index]) {
+        URL.revokeObjectURL(replyImagePreviews[index]);
+      }
+      
+      setReplyImages(newFiles);
+      setReplyImagePreviews(newPreviews);
+    } else {
+      const newFiles = commentImages.filter((_, i) => i !== index);
+      const newPreviews = commentImagePreviews.filter((_, i) => i !== index);
+      
+      if (commentImagePreviews[index]) {
+        URL.revokeObjectURL(commentImagePreviews[index]);
+      }
+      
+      setCommentImages(newFiles);
+      setCommentImagePreviews(newPreviews);
     }
   };
 
@@ -346,6 +413,22 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
               
               <p className="whitespace-pre-line mb-3">{comment.content}</p>
               
+              {comment.images && comment.images.length > 0 && (
+                <div className={`grid gap-2 mb-3 ${
+                  comment.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+                }`}>
+                  {comment.images.map((image, imgIndex) => (
+                    <img
+                      key={imgIndex}
+                      src={image}
+                      alt={`Comment image ${imgIndex + 1}`}
+                      className="rounded-lg object-cover w-full max-h-48 cursor-pointer hover:scale-[1.02] transition-transform"
+                      onClick={() => window.open(image, '_blank')}
+                    />
+                  ))}
+                </div>
+              )}
+              
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
@@ -394,6 +477,43 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
                 placeholder="Write a reply..."
                 className="mb-2"
               />
+              
+              <div className="mb-2">
+                <label htmlFor={`reply-image-${comment.id}`} className="cursor-pointer inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
+                  <ImagePlus className="h-4 w-4" />
+                  Attach images
+                </label>
+                <Input
+                  id={`reply-image-${comment.id}`}
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  onChange={(e) => handleImageChange(e, true)}
+                  className="hidden"
+                />
+              </div>
+              
+              {replyImagePreviews.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  {replyImagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-20 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCommentImage(index, true)}
+                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -408,6 +528,9 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
                   onClick={() => {
                     setReplyingTo(null);
                     setReplyContent("");
+                    replyImagePreviews.forEach(url => URL.revokeObjectURL(url));
+                    setReplyImages([]);
+                    setReplyImagePreviews([]);
                   }}
                   disabled={isSubmitting}
                 >
@@ -475,6 +598,43 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
                 placeholder="Share your thoughts..."
                 className="mb-4"
               />
+              
+              <div className="mb-4">
+                <label htmlFor="comment-image" className="cursor-pointer inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
+                  <ImagePlus className="h-4 w-4" />
+                  Attach images
+                </label>
+                <Input
+                  id="comment-image"
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  onChange={(e) => handleImageChange(e, false)}
+                  className="hidden"
+                />
+              </div>
+              
+              {commentImagePreviews.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                  {commentImagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCommentImage(index, false)}
+                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
               <div className="flex gap-2">
                 <Button
                   onClick={() => handleSubmitComment()}

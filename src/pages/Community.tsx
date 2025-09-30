@@ -600,14 +600,22 @@ const Community = () => {
                       </div>
                       
                       {post.images && post.images.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                        <div className={`grid gap-2 mb-4 ${
+                          post.images.length === 1 ? 'grid-cols-1' : 
+                          post.images.length === 2 ? 'grid-cols-2' : 
+                          'grid-cols-2 md:grid-cols-3'
+                        }`}>
                           {post.images.map((image, index) => (
-                            <img
-                              key={index}
-                              src={image}
-                              alt={`Post image ${index + 1}`}
-                              className="rounded-lg object-cover aspect-square"
-                            />
+                            <div key={index} className="relative group cursor-pointer">
+                              <img
+                                src={image}
+                                alt={`${post.title} - Image ${index + 1}`}
+                                className={`rounded-lg object-cover w-full transition-transform hover:scale-[1.02] ${
+                                  post.images.length === 1 ? 'max-h-96' : 'aspect-square'
+                                }`}
+                                onClick={() => window.open(image, '_blank')}
+                              />
+                            </div>
                           ))}
                         </div>
                       )}

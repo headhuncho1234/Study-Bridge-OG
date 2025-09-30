@@ -55,6 +55,7 @@ const CreatePostModal = ({
   const [content, setContent] = useState(prefillData?.content || '');
   const [channel, setChannel] = useState(prefillData?.channel || defaultChannel);
   const [files, setFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -105,6 +106,11 @@ const CreatePostModal = ({
       setContent('');
       setChannel(defaultChannel);
       setFiles([]);
+      
+      // Clean up preview URLs
+      imagePreviews.forEach(url => URL.revokeObjectURL(url));
+      setImagePreviews([]);
+      
       onClose();
       
       toast({
@@ -125,8 +131,32 @@ const CreatePostModal = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles(Array.from(e.target.files));
+      const newFiles = Array.from(e.target.files);
+      setFiles(newFiles);
+      
+      // Generate preview URLs for images
+      const previews = newFiles.map(file => {
+        if (file.type.startsWith('image/')) {
+          return URL.createObjectURL(file);
+        }
+        return '';
+      }).filter(Boolean);
+      
+      setImagePreviews(previews);
     }
+  };
+
+  const removeImage = (index: number) => {
+    const newFiles = files.filter((_, i) => i !== index);
+    const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    
+    // Revoke the URL to free memory
+    if (imagePreviews[index]) {
+      URL.revokeObjectURL(imagePreviews[index]);
+    }
+    
+    setFiles(newFiles);
+    setImagePreviews(newPreviews);
   };
 
   const modules = {
@@ -208,18 +238,52 @@ const CreatePostModal = ({
           </div>
 
           <div>
-            <Label htmlFor="files">Attach Files (optional)</Label>
+            <Label htmlFor="files">Attach Images (optional)</Label>
             <Input
               id="files"
               type="file"
               multiple
-              accept="image/*,.pdf,.doc,.docx"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
               onChange={handleFileChange}
               className="mt-1"
             />
-            {files.length > 0 && (
-              <div className="mt-2 text-sm text-muted-foreground">
-                Selected: {files.map(f => f.name).join(', ')}
+            
+            {/* Image Previews */}
+            {imagePreviews.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={preview}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border border-border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={isUploading}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                    <div className="mt-1 text-xs text-muted-foreground truncate">
+                      {files[index]?.name}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
