@@ -7,19 +7,9 @@ import EnhancedResultsDisplay from "@/components/questionnaire/EnhancedResultsDi
 import HomepageAIAssistant from "@/components/HomepageAIAssistant";
 
 const Index = () => {
-  // Handle initial scroll and hash navigation
+  // Always scroll to top when landing on homepage
   useEffect(() => {
-    // First scroll to top
-    window.scrollTo(0, 0);
-    
-    // Then check if there's a hash to scroll to
-    const hash = window.location.hash;
-    if (hash) {
-      setTimeout(() => {
-        const element = document.querySelector(hash);
-        element?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
   return (
     <div className="min-h-screen">
@@ -32,7 +22,7 @@ const Index = () => {
           <Features />
         </div>
         
-        <div id="intake">
+        <div id="intake" className="mb-32">
           <StudentIntake />
         </div>
 

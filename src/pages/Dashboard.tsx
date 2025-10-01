@@ -289,7 +289,7 @@ const Dashboard = () => {
                 <div className="text-center py-6">
                   <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">No saved results yet</p>
-                  <Link to="/#intake">
+                  <Link to="/">
                     <Button>Take Questionnaire</Button>
                   </Link>
                 </div>

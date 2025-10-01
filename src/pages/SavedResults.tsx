@@ -261,7 +261,7 @@ const SavedResults = () => {
             <p className="text-muted-foreground mb-4">
               Complete the questionnaire to get personalized university recommendations that you can save.
             </p>
-            <Link to="/#intake">
+            <Link to="/">
               <Button>
                 Get Started
               </Button>

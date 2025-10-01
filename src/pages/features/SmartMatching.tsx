@@ -39,7 +39,7 @@ const SmartMatching = () => {
               </div>
             </div>
             
-            <Link to="/#intake">
+            <Link to="/">
               <Button 
                 variant="secondary" 
                 size="lg" 
@@ -165,7 +165,7 @@ const SmartMatching = () => {
             <p className="text-muted-foreground mb-6">
               Join thousands of students who have found their ideal universities through our AI-powered matching system.
             </p>
-            <Link to="/#intake">
+            <Link to="/">
               <Button 
                 size="lg" 
                 className="mr-4"
