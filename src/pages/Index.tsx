@@ -5,6 +5,7 @@ import Features from "@/components/Features";
 import StudentIntake from "@/components/StudentIntake";
 import EnhancedResultsDisplay from "@/components/questionnaire/EnhancedResultsDisplay";
 import HomepageAIAssistant from "@/components/HomepageAIAssistant";
+import logo from "@/assets/studybridge-logo.png";
 
 const Index = () => {
   // Always scroll to top when landing on homepage
@@ -82,10 +83,12 @@ const Index = () => {
       
       <footer className="bg-muted/30 py-12 px-4">
         <div className="max-w-6xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-6 h-6 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-white text-xs font-bold">SB</span>
-            </div>
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <img 
+              src={logo} 
+              alt="StudyBridge Logo" 
+              className="h-8 w-auto"
+            />
             <span className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
               StudyBridge
             </span>

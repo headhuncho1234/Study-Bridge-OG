@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AuthModal from "@/components/auth/AuthModal";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/studybridge-logo.png";
 
 const features = [
   {
@@ -90,10 +91,12 @@ const Navbar = () => {
     <nav className="bg-background/95 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">SB</span>
-            </div>
+          <Link to="/" className="flex items-center space-x-3">
+            <img 
+              src={logo} 
+              alt="StudyBridge Logo" 
+              className="h-10 w-auto"
+            />
             <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               StudyBridge
             </span>
