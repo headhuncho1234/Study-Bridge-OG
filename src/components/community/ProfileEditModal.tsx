@@ -270,7 +270,7 @@ const ProfileEditModal = ({ isOpen, onClose, onProfileUpdated }: ProfileEditModa
                   ...prev,
                   bio: e.target.value
                 }))}
-                placeholder="Tell us about yourself..."
+                placeholder="Tell us about yourself... (Press Enter for new line)"
                 maxLength={200}
                 rows={3}
               />

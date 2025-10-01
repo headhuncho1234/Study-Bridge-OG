@@ -524,7 +524,7 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
               <Textarea
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
-                placeholder="Write a reply..."
+                placeholder="Write a reply... (Press Enter for new line)"
                 className="mb-2"
               />
               
@@ -645,7 +645,7 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
               <Textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Share your thoughts..."
+                placeholder="Share your thoughts... (Press Enter for new line)"
                 className="mb-4"
               />
               

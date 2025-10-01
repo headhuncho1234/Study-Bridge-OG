@@ -53,29 +53,46 @@ interface Post {
 
 const sanitizeAndFormatContent = (htmlContent: string): string => {
   const sanitized = DOMPurify.sanitize(htmlContent, {
-    ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'strong', 'em', 'ul', 'ol', 'li'],
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'blockquote', 'code', 'pre'],
     ALLOWED_ATTR: []
   });
   
+  // Create temp div to parse HTML
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = sanitized;
   
-  let formattedText = tempDiv.textContent || tempDiv.innerText || '';
+  // Convert HTML elements to text with preserved line breaks
+  let text = '';
+  const processNode = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.textContent;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as HTMLElement;
+      const tagName = element.tagName.toLowerCase();
+      
+      // Add line breaks before block elements
+      if (['p', 'div', 'h1', 'h2', 'h3', 'blockquote'].includes(tagName) && text && !text.endsWith('\n')) {
+        text += '\n';
+      }
+      
+      // Process children
+      element.childNodes.forEach(processNode);
+      
+      // Add line breaks after block elements
+      if (['p', 'div', 'h1', 'h2', 'h3', 'blockquote'].includes(tagName)) {
+        text += '\n';
+      } else if (tagName === 'br') {
+        text += '\n';
+      } else if (tagName === 'li') {
+        text += '\n';
+      }
+    }
+  };
   
-  if (sanitized.includes('<p>')) {
-    const paragraphs = sanitized.split(/<\/p>\s*<p[^>]*>/);
-    formattedText = paragraphs
-      .map(p => p.replace(/<[^>]+>/g, '').trim())
-      .filter(p => p.length > 0)
-      .join('\n\n');
-  } else {
-    formattedText = sanitized.replace(/<br\s*\/?>/gi, '\n');
-    formattedText = formattedText.replace(/<[^>]+>/g, '');
-  }
+  tempDiv.childNodes.forEach(processNode);
   
-  formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
-  
-  return formattedText;
+  // Clean up excessive line breaks (more than 2 consecutive)
+  return text.replace(/\n{3,}/g, '\n\n').trim();
 };
 
 const Community = () => {

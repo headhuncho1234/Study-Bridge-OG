@@ -273,7 +273,7 @@ const UserProfile = () => {
               <div>
                 <h1 className="text-2xl font-bold">{profile.display_name || profile.username}</h1>
                 {profile.bio && (
-                  <p className="text-muted-foreground mt-1">{profile.bio}</p>
+                  <p className="text-muted-foreground mt-1 whitespace-pre-line">{profile.bio}</p>
                 )}
                 <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                   <span>Joined {new Date(profile.created_at).toLocaleDateString()}</span>
