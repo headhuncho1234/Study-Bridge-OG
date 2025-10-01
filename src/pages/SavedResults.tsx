@@ -261,12 +261,8 @@ const SavedResults = () => {
             <p className="text-muted-foreground mb-4">
               Complete the questionnaire to get personalized university recommendations that you can save.
             </p>
-            <Link to="/">
-              <Button onClick={() => {
-                setTimeout(() => {
-                  document.getElementById('intake')?.scrollIntoView({ behavior: 'smooth' });
-                }, 100);
-              }}>
+            <Link to="/#intake">
+              <Button>
                 Get Started
               </Button>
             </Link>

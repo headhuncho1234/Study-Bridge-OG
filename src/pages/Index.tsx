@@ -7,9 +7,19 @@ import EnhancedResultsDisplay from "@/components/questionnaire/EnhancedResultsDi
 import HomepageAIAssistant from "@/components/HomepageAIAssistant";
 
 const Index = () => {
-  // Scroll to top on component mount to prevent auto-scrolling to fragments
+  // Handle initial scroll and hash navigation
   useEffect(() => {
+    // First scroll to top
     window.scrollTo(0, 0);
+    
+    // Then check if there's a hash to scroll to
+    const hash = window.location.hash;
+    if (hash) {
+      setTimeout(() => {
+        const element = document.querySelector(hash);
+        element?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
   }, []);
   return (
     <div className="min-h-screen">
