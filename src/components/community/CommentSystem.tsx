@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, ChevronDown, ChevronUp, ImagePlus, X } from "lucide-react";
+import { Heart, MessageCircle, ChevronDown, ChevronUp, ImagePlus, X, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,16 @@ import AuthModal from "@/components/auth/AuthModal";
 import FollowThreadButton from "./FollowThreadButton";
 import { uploadMultipleImages } from "@/utils/imageUpload";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Comment {
   id: string;
@@ -48,6 +58,7 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
   const [commentImagePreviews, setCommentImagePreviews] = useState<string[]>([]);
   const [replyImages, setReplyImages] = useState<File[]>([]);
   const [replyImagePreviews, setReplyImagePreviews] = useState<string[]>([]);
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -389,6 +400,33 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
     setExpandedComments(newExpanded);
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Comment deleted",
+        description: "Your comment has been removed successfully.",
+      });
+
+      await loadComments();
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast({
+        title: "Error deleting comment",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeleteCommentId(null);
+    }
+  };
+
   const renderComment = (comment: Comment, depth = 0) => (
     <div key={comment.id} className={`${depth > 0 ? 'ml-8 border-l-2 border-muted pl-4' : ''}`}>
       <Card className="mb-4">
@@ -463,6 +501,18 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
                       <ChevronDown className="h-4 w-4 mr-1" />
                     )}
                     {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
+                  </Button>
+                )}
+                
+                {user?.id === comment.user_id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeleteCommentId(comment.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
                   </Button>
                 )}
               </div>
@@ -659,6 +709,26 @@ const CommentSystem = ({ postId, isExpanded = false, onToggleExpanded }: Comment
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
       />
+
+      <AlertDialog open={!!deleteCommentId} onOpenChange={() => setDeleteCommentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this comment? This action cannot be undone and will also delete all replies.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteCommentId && handleDeleteComment(deleteCommentId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

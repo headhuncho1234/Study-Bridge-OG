@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Heart, MessageCircle, Share2, Home, GraduationCap, Heart as WellnessIcon, DollarSign, FileText, Briefcase, ThumbsDown, Eye, TrendingUp, Settings, User, Users } from "lucide-react";
+import { ArrowLeft, Plus, Heart, MessageCircle, Share2, Home, GraduationCap, Heart as WellnessIcon, DollarSign, FileText, Briefcase, ThumbsDown, Eye, TrendingUp, Settings, User, Users, Trash2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import DOMPurify from "dompurify";
 import CommentSystem from "@/components/community/CommentSystem";
@@ -19,6 +19,16 @@ import WhoLikedSection from "@/components/community/WhoLikedSection";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AuthModal from "@/components/auth/AuthModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Post {
   id: string;
@@ -81,6 +91,7 @@ const Community = () => {
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [userLikes, setUserLikes] = useState<Map<string, { isLike: boolean; id: string }>>(new Map());
   const [showWhoLiked, setShowWhoLiked] = useState<string | null>(null);
+  const [deletePostId, setDeletePostId] = useState<string | null>(null);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -401,6 +412,33 @@ const Community = () => {
     navigate(`/profile/${userId}`);
   };
 
+  const handleDeletePost = async (postId: string) => {
+    try {
+      const { error } = await supabase
+        .from('community_posts')
+        .delete()
+        .eq('id', postId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Post deleted",
+        description: "Your post has been removed successfully.",
+      });
+
+      loadPosts();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast({
+        title: "Error deleting post",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletePostId(null);
+    }
+  };
+
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          post.content.toLowerCase().includes(searchQuery.toLowerCase());
@@ -686,6 +724,18 @@ const Community = () => {
                             <Share2 className="h-4 w-4 mr-1" />
                             Share
                           </Button>
+                          
+                          {user?.id === post.user_id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeletePostId(post.id)}
+                              className="text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                          )}
                         </div>
                       </div>
                       
@@ -753,6 +803,26 @@ const Community = () => {
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
         />
+
+        <AlertDialog open={!!deletePostId} onOpenChange={() => setDeletePostId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Post</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this post? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deletePostId && handleDeletePost(deletePostId)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
