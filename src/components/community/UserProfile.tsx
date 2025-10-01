@@ -6,7 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Heart, Calendar, User, Coins, Edit } from "lucide-react";
+import { MessageSquare, Heart, Calendar, User, Coins, Edit, Home, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import CommentSystem from "./CommentSystem";
 
@@ -241,6 +241,24 @@ const UserProfile = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Navigation Buttons */}
+      <div className="flex items-center gap-3 mb-2">
+        <Link to="/community">
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Back to Community</span>
+            <span className="sm:hidden">Community</span>
+          </Button>
+        </Link>
+        <Link to="/">
+          <Button variant="outline" size="sm">
+            <Home className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Go to Home</span>
+            <span className="sm:hidden">Home</span>
+          </Button>
+        </Link>
+      </div>
+
       {/* Profile Header */}
       <Card>
         <CardContent className="p-6">
