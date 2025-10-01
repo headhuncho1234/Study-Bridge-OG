@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, FileText, CheckCircle, Clock, Users } from "lucide-react";
 import { useVisaTracker } from "@/hooks/useVisaTracker";
+import Navbar from "@/components/Navbar";
 
 const VisaGuidance = () => {
   const { visaTasks, updateTaskCompletion, getTaskProgress, getOverallProgress } = useVisaTracker();
@@ -19,8 +20,10 @@ const VisaGuidance = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Link to="/">
@@ -235,6 +238,7 @@ const VisaGuidance = () => {
             </Link>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

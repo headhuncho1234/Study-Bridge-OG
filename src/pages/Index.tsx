@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
@@ -6,6 +7,10 @@ import EnhancedResultsDisplay from "@/components/questionnaire/EnhancedResultsDi
 import HomepageAIAssistant from "@/components/HomepageAIAssistant";
 
 const Index = () => {
+  // Scroll to top on component mount to prevent auto-scrolling to fragments
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   return (
     <div className="min-h-screen">
       <Navbar />

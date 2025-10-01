@@ -39,8 +39,17 @@ const SmartMatching = () => {
               </div>
             </div>
             
-            <Link to="/#intake">
-              <Button variant="secondary" size="lg" className="mt-4">
+            <Link to="/">
+              <Button 
+                variant="secondary" 
+                size="lg" 
+                className="mt-4"
+                onClick={() => {
+                  setTimeout(() => {
+                    document.getElementById('intake')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+                }}
+              >
                 Start Your Matching Journey
               </Button>
             </Link>
@@ -161,8 +170,16 @@ const SmartMatching = () => {
             <p className="text-muted-foreground mb-6">
               Join thousands of students who have found their ideal universities through our AI-powered matching system.
             </p>
-            <Link to="/#intake">
-              <Button size="lg" className="mr-4">
+            <Link to="/">
+              <Button 
+                size="lg" 
+                className="mr-4"
+                onClick={() => {
+                  setTimeout(() => {
+                    document.getElementById('intake')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+                }}
+              >
                 Start Questionnaire
               </Button>
             </Link>

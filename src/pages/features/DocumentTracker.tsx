@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Search, CheckCircle, Clock, AlertTriangle, FileText, Calendar } from "lucide-react";
 import { useDocumentTracker } from "@/hooks/useDocumentTracker";
+import Navbar from "@/components/Navbar";
 
 const DocumentTracker = () => {
   const { documents, updateDocumentStatus, getStats, getCategoryStats, isLoading } = useDocumentTracker();
@@ -52,8 +53,10 @@ const DocumentTracker = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Link to="/">
@@ -245,6 +248,7 @@ const DocumentTracker = () => {
               </Button>
             </CardContent>
           </Card>
+        </div>
       </div>
     </div>
   );

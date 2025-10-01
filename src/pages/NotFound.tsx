@@ -2,6 +2,7 @@ import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Home, AlertCircle } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 const NotFound = () => {
   const location = useLocation();
@@ -14,8 +15,10 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
-      <div className="text-center max-w-md mx-auto px-4">
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
         <div className="mb-8">
           <AlertCircle className="h-24 w-24 text-muted-foreground/30 mx-auto mb-6" />
           <h1 className="text-6xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
@@ -33,6 +36,7 @@ const NotFound = () => {
             Return to Homepage
           </Button>
         </Link>
+        </div>
       </div>
     </div>
   );

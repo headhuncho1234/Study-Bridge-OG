@@ -258,14 +258,18 @@ const SavedResults = () => {
             <CardContent>
               <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-semibold mb-2">No saved results yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Complete the questionnaire to get personalized university recommendations that you can save.
-              </p>
-              <Link to="/#intake">
-                <Button>
-                  Get Started
-                </Button>
-              </Link>
+            <p className="text-muted-foreground mb-4">
+              Complete the questionnaire to get personalized university recommendations that you can save.
+            </p>
+            <Link to="/">
+              <Button onClick={() => {
+                setTimeout(() => {
+                  document.getElementById('intake')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }}>
+                Get Started
+              </Button>
+            </Link>
             </CardContent>
           </Card>
         )}

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, Home, Users, DollarSign, Star, Shield } from "lucide-react";
 import RoommateQuestionnaire from "@/components/housing/RoommateQuestionnaire";
+import Navbar from "@/components/Navbar";
 
 const HousingSolutions = () => {
   const [isRoommateModalOpen, setIsRoommateModalOpen] = useState(false);
@@ -66,8 +67,10 @@ const HousingSolutions = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Link to="/">
@@ -284,6 +287,7 @@ const HousingSolutions = () => {
           isOpen={isRoommateModalOpen}
           onClose={() => setIsRoommateModalOpen(false)}
         />
+        </div>
       </div>
     </div>
   );
