@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AuthModal from "@/components/auth/AuthModal";
+import { ShoppingCartDrawer } from "@/components/wellness/ShoppingCartDrawer";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/studybridge-logo.png";
 
@@ -147,6 +148,13 @@ const Navbar = () => {
               Dashboard
             </Link>
           </div>
+
+          {/* Shopping Cart - Only show when authenticated */}
+          {user && (
+            <div className="hidden md:block">
+              <ShoppingCartDrawer />
+            </div>
+          )}
 
           {/* Auth Section */}
           <div className="hidden md:flex items-center gap-3">

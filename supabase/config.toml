@@ -22,3 +22,9 @@ jwt_expiry = 3600
 
 [functions.chat]
 verify_jwt = false
+
+[functions.create-wellness-checkout]
+verify_jwt = true
+
+[functions.verify-wellness-payment]
+verify_jwt = true

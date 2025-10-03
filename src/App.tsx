@@ -19,6 +19,10 @@ import VisaGuidance from "./pages/features/VisaGuidance";
 import HousingSolutions from "./pages/features/HousingSolutions";
 import StudentCommunity from "./pages/features/StudentCommunity";  
 import WellnessSupport from "./pages/features/WellnessSupport";
+import WellnessShop from "./pages/features/WellnessShop";
+import WellnessCheckout from "./pages/features/WellnessCheckout";
+import OrderConfirmation from "./pages/features/OrderConfirmation";
+import MyOrders from "./pages/features/MyOrders";
 import DocumentTracker from "./pages/features/DocumentTracker";
 import AIAssistant from "./pages/features/AIAssistant";
 import HousingQuestionnairePage from "./pages/questionnaires/HousingQuestionnairePage";
@@ -49,6 +53,10 @@ const App = () => (
           <Route path="/features/housing-solutions" element={<HousingSolutions />} />
           <Route path="/features/student-community" element={<StudentCommunity />} />
           <Route path="/features/wellness-support" element={<WellnessSupport />} />
+          <Route path="/wellness-shop" element={<WellnessShop />} />
+          <Route path="/wellness-shop/checkout" element={<WellnessCheckout />} />
+          <Route path="/wellness-shop/order-confirmation/:orderId" element={<OrderConfirmation />} />
+          <Route path="/wellness-shop/my-orders" element={<MyOrders />} />
           <Route path="/features/document-tracker" element={<DocumentTracker />} />
           <Route path="/features/ai-assistant" element={<AIAssistant />} />
           <Route path="/questionnaires/housing" element={<HousingQuestionnairePage />} />

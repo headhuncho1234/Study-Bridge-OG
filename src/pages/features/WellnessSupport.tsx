@@ -116,9 +116,11 @@ const WellnessSupport = () => {
                   <p className="text-white/90 text-sm">Books, apparel, and wellness products from trusted vendors</p>
                 </div>
               </div>
-              <Button variant="secondary" className="mt-4 w-full">
-                Browse Wellness Shop
-              </Button>
+              <Link to="/wellness-shop">
+                <Button variant="secondary" className="mt-4 w-full">
+                  Browse Wellness Shop
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
