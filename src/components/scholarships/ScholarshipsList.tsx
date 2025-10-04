@@ -47,11 +47,6 @@ const ScholarshipsList = () => {
       }
 
       // Fetch from database
-   const loadScholarships = async () => {
-  setIsLoading(true);
-
-  try {
-     // Fetch from database
       const { data, error } = await supabase
         .from('scholarships')
         .select('*')
@@ -78,6 +73,13 @@ const ScholarshipsList = () => {
     }
   };
 
+  const formatDeadline = (deadline: string) => {
+    return new Date(deadline).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
 
   if (isLoading) {
     return (
