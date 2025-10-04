@@ -51,41 +51,32 @@ const ScholarshipsList = () => {
   setIsLoading(true);
 
   try {
-    // Fetch from database
-    const { data, error } = await supabase
-      .from('scholarships')
-      .select('*')
-      .order('deadline', { ascending: true })
-      .limit(6);
+     // Fetch from database
+      const { data, error } = await supabase
+        .from('scholarships')
+        .select('*')
+        .order('deadline', { ascending: true })
+        .limit(6);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    if (data) {
-      // Normalize URLs
-      const normalizedData = data.map(item => ({
-        ...item,
-        url: item.url?.startsWith('http://') || item.url?.startsWith('https://')
-          ? item.url
-          : `https://${item.url}`,
-      }));
-
-      setScholarships(normalizedData);
-
-      // Cache the results
-      localStorage.setItem('scholarships_cache', JSON.stringify(normalizedData));
-      localStorage.setItem('scholarships_cache_time', Date.now().toString());
+      if (data) {
+        setScholarships(data);
+        // Cache the results
+        localStorage.setItem('scholarships_cache', JSON.stringify(data));
+        localStorage.setItem('scholarships_cache_time', Date.now().toString());
+      }
+    } catch (error) {
+      console.error('Error loading scholarships:', error);
+      toast({
+        title: "Error loading scholarships",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Error loading scholarships:', error);
-    toast({
-      title: "Error loading scholarships",
-      description: "Please try again later.",
-      variant: "destructive"
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
 
   if (isLoading) {
