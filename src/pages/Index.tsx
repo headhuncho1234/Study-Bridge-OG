@@ -5,6 +5,7 @@ import Features from "@/components/Features";
 import StudentIntake from "@/components/StudentIntake";
 import EnhancedResultsDisplay from "@/components/questionnaire/EnhancedResultsDisplay";
 import HomepageAIAssistant from "@/components/HomepageAIAssistant";
+import ScholarshipsList from "@/components/scholarships/ScholarshipsList";
 import logo from "@/assets/studybridge-logo.png";
 
 const Index = () => {
@@ -34,6 +35,20 @@ const Index = () => {
         <section className="py-16 px-4">
           <div className="max-w-6xl mx-auto">
             <EnhancedResultsDisplay />
+          </div>
+        </section>
+
+        {/* Scholarship Listings */}
+        <section className="py-16 px-4 bg-muted/20">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Featured Scholarships</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Discover real scholarship opportunities from trusted providers worldwide. 
+                We continuously update our database with the latest funding options for international students.
+              </p>
+            </div>
+            <ScholarshipsList />
           </div>
         </section>
 

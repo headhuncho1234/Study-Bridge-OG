@@ -18,35 +18,35 @@ const defaultDocuments: DocumentCategory[] = [
   {
     category: "Visa Documents",
     documents: [
-      { id: '1', name: "Passport", status: "completed", dueDate: "N/A", category: "Visa Documents" },
-      { id: '2', name: "I-20 Form", status: "completed", dueDate: "N/A", category: "Visa Documents" },
-      { id: '3', name: "DS-160 Application", status: "completed", dueDate: "N/A", category: "Visa Documents" },
-      { id: '4', name: "SEVIS Fee Receipt", status: "completed", dueDate: "N/A", category: "Visa Documents" },
-      { id: '5', name: "Financial Statements", status: "completed", dueDate: "N/A", category: "Visa Documents" },
-      { id: '6', name: "Visa Interview Appointment", status: "completed", dueDate: "N/A", category: "Visa Documents" },
-      { id: '7', name: "Embassy Medical Exam", status: "pending", dueDate: "Dec 15, 2024", category: "Visa Documents" },
-      { id: '8', name: "Visa Approval", status: "pending", dueDate: "Dec 30, 2024", category: "Visa Documents" }
+      { id: '1', name: "Passport", status: "tracked", dueDate: "N/A", category: "Visa Documents" },
+      { id: '2', name: "I-20 Form", status: "tracked", dueDate: "N/A", category: "Visa Documents" },
+      { id: '3', name: "DS-160 Application", status: "tracked", dueDate: "N/A", category: "Visa Documents" },
+      { id: '4', name: "SEVIS Fee Receipt", status: "tracked", dueDate: "N/A", category: "Visa Documents" },
+      { id: '5', name: "Financial Statements", status: "tracked", dueDate: "N/A", category: "Visa Documents" },
+      { id: '6', name: "Visa Interview Appointment", status: "tracked", dueDate: "N/A", category: "Visa Documents" },
+      { id: '7', name: "Embassy Medical Exam", status: "tracked", dueDate: "N/A", category: "Visa Documents" },
+      { id: '8', name: "Visa Approval", status: "tracked", dueDate: "N/A", category: "Visa Documents" }
     ]
   },
   {
     category: "University Application",
     documents: [
-      { id: '9', name: "Common Application", status: "completed", dueDate: "N/A", category: "University Application" },
-      { id: '10', name: "Academic Transcripts", status: "completed", dueDate: "N/A", category: "University Application" },
-      { id: '11', name: "Letters of Recommendation", status: "completed", dueDate: "N/A", category: "University Application" },
-      { id: '12', name: "Personal Statement", status: "completed", dueDate: "N/A", category: "University Application" },
-      { id: '13', name: "Application Fee Payment", status: "pending", dueDate: "Jan 1, 2025", category: "University Application" },
-      { id: '14', name: "Portfolio Submission", status: "overdue", dueDate: "Dec 1, 2024", category: "University Application" }
+      { id: '9', name: "Common Application", status: "tracked", dueDate: "N/A", category: "University Application" },
+      { id: '10', name: "Academic Transcripts", status: "tracked", dueDate: "N/A", category: "University Application" },
+      { id: '11', name: "Letters of Recommendation", status: "tracked", dueDate: "N/A", category: "University Application" },
+      { id: '12', name: "Personal Statement", status: "tracked", dueDate: "N/A", category: "University Application" },
+      { id: '13', name: "Application Fee Payment", status: "tracked", dueDate: "N/A", category: "University Application" },
+      { id: '14', name: "Portfolio Submission", status: "tracked", dueDate: "N/A", category: "University Application" }
     ]
   },
   {
     category: "Financial Aid",
     documents: [
-      { id: '15', name: "FAFSA Application", status: "completed", dueDate: "N/A", category: "Financial Aid" },
-      { id: '16', name: "CSS Profile", status: "completed", dueDate: "N/A", category: "Financial Aid" },
-      { id: '17', name: "Tax Returns", status: "pending", dueDate: "Jan 15, 2025", category: "Financial Aid" },
-      { id: '18', name: "Bank Statements", status: "pending", dueDate: "Jan 15, 2025", category: "Financial Aid" },
-      { id: '19', name: "Scholarship Applications", status: "pending", dueDate: "Feb 1, 2025", category: "Financial Aid" }
+      { id: '15', name: "FAFSA Application", status: "tracked", dueDate: "N/A", category: "Financial Aid" },
+      { id: '16', name: "CSS Profile", status: "tracked", dueDate: "N/A", category: "Financial Aid" },
+      { id: '17', name: "Tax Returns", status: "tracked", dueDate: "N/A", category: "Financial Aid" },
+      { id: '18', name: "Bank Statements", status: "tracked", dueDate: "N/A", category: "Financial Aid" },
+      { id: '19', name: "Scholarship Applications", status: "tracked", dueDate: "N/A", category: "Financial Aid" }
     ]
   }
 ];

@@ -9,7 +9,7 @@ const AIAssistant = () => {
   const assistantFeatures = [
     {
       icon: <Clock className="h-8 w-8 text-primary" />,
-      title: "24/7 Availability",
+      title: "On the Go?",
       description: "Get help anytime, anywhere - our AI never sleeps",
       examples: ["Late night study questions", "Weekend deadline reminders", "Holiday application help"]
     },
@@ -140,9 +140,11 @@ const AIAssistant = () => {
               </div>
             </div>
             
-            <Button variant="secondary" size="lg" className="mt-4">
-              Chat with Assistant
-            </Button>
+            <Link to="/">
+              <Button variant="secondary" size="lg" className="mt-4">
+                Chat with Assistant
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 

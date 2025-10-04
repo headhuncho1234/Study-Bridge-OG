@@ -139,7 +139,7 @@ const WellnessSupport = () => {
               </div>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-4 mb-6">
+            <div className="grid md:grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-3xl font-bold text-yellow-200">24/7</div>
                 <div className="text-sm text-white/80">Support Available</div>
@@ -153,15 +153,6 @@ const WellnessSupport = () => {
                 <div className="text-sm text-white/80">Confidential</div>
               </div>
             </div>
-            
-            <Button 
-              variant="secondary" 
-              size="lg" 
-              className="mt-4"
-              onClick={() => setShowQuestionnaire(true)}
-            >
-              Get Support Now
-            </Button>
           </CardContent>
         </Card>
 
@@ -169,7 +160,25 @@ const WellnessSupport = () => {
         {showQuestionnaire && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="max-h-[90vh] overflow-y-auto">
-              <SupportQuestionnaire onClose={() => setShowQuestionnaire(false)} />
+              <SupportQuestionnaire 
+                onClose={() => setShowQuestionnaire(false)}
+                onHealthInsurance={() => setShowHealthInsurance(true)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Health Insurance Questionnaire Modal */}
+        {showHealthInsurance && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="max-h-[90vh] overflow-y-auto">
+              <HealthInsuranceQuestionnaire 
+                onComplete={(recommendations) => {
+                  setHealthRecommendations(recommendations);
+                  setShowHealthInsurance(false);
+                }}
+                onCancel={() => setShowHealthInsurance(false)}
+              />
             </div>
           </div>
         )}
@@ -373,6 +382,9 @@ const WellnessSupport = () => {
             </TabsContent>
 
             <TabsContent value="research" className="space-y-6">
+              <p className="text-center text-muted-foreground italic mb-6">
+                Explore studies and reports on student wellness trends, coping mechanisms, and institutional support strategies.
+              </p>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Card>
                   <CardHeader>

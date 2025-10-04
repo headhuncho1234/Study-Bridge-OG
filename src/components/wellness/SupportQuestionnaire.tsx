@@ -8,9 +8,10 @@ import { ArrowLeft, ExternalLink, Phone, Heart, BookOpen, TestTube, FileText } f
 
 interface SupportQuestionnaireProps {
   onClose: () => void;
+  onHealthInsurance?: () => void;
 }
 
-const SupportQuestionnaire = ({ onClose }: SupportQuestionnaireProps) => {
+const SupportQuestionnaire = ({ onClose, onHealthInsurance }: SupportQuestionnaireProps) => {
   const [selectedOption, setSelectedOption] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -18,6 +19,7 @@ const SupportQuestionnaire = ({ onClose }: SupportQuestionnaireProps) => {
 
   const supportOptions = [
     { id: 'crisis', label: 'Crisis Services', icon: <Phone className="h-5 w-5" /> },
+    { id: 'health-insurance', label: 'Health Insurance Support', icon: <Heart className="h-5 w-5" /> },
     { id: 'treatment', label: 'Explore Treatment Options', icon: <Heart className="h-5 w-5" /> },
     { id: 'clubs', label: 'Join Wellness Clubs', icon: <BookOpen className="h-5 w-5" /> },
     { id: 'test', label: 'Take Mental Health Test', icon: <TestTube className="h-5 w-5" /> },
@@ -96,6 +98,12 @@ const SupportQuestionnaire = ({ onClose }: SupportQuestionnaireProps) => {
   };
 
   const handleSubmit = () => {
+    // If health insurance is selected, trigger the health insurance modal
+    if (selectedOption === 'health-insurance' && onHealthInsurance) {
+      onHealthInsurance();
+      onClose();
+      return;
+    }
     setShowResults(true);
   };
 
