@@ -165,7 +165,7 @@ const SmartMatching = () => {
             <p className="text-muted-foreground mb-6">
               Join thousands of students who have found their ideal universities through our AI-powered matching system.
             </p>
-            <Link to="/#questionnaire-section">
+            <Link to="/questionnaire-section">
               <Button 
                 size="lg" 
                 className="mr-4"
