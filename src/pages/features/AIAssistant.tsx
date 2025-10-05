@@ -152,7 +152,7 @@ const AIAssistant = () => {
             </div>
             
             <Link to="/">
-              <Button variant="secondary" size="lg" className="mt-4">
+              <Button onClick={goToChatSection} variant="secondary" size="lg" className="mt-4">
                 Chat with Assistant
               </Button>
             </Link>
