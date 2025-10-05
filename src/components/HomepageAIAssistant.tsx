@@ -486,7 +486,7 @@ const HomepageAIAssistant = () => {
     <section className="py-16 px-4 bg-gradient-to-r from-primary/5 to-secondary/5">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <section id="chat-section>
+          <section id="chat-section">
             <h2 className="text-3xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
               AI-Powered Student Assistant
             </h2>
