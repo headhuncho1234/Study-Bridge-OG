@@ -49,8 +49,6 @@ const SmartMatching = () => {
                 </p>
               </div>
             </div>
-            
-            <Link>
               <Button 
                 onClick={goToMainSection}
                 variant="secondary" 
@@ -59,7 +57,6 @@ const SmartMatching = () => {
               >
                 Start Your Matching Journey
               </Button>
-            </Link>
           </CardContent>
         </Card>
 
