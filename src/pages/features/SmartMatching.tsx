@@ -9,7 +9,10 @@ const SmartMatching = () => {
   const navigate = useNavigate();
 
   const goToMainSection = () => {
-    window.location.href = "/#questionnaire-section";
+    navigate("/"); // first go to the main page
+    setTimeout(() => {
+      window.location.hash = "#questionnaire-section"; // then trigger scroll
+    }, 100);
   };
 
   return (
