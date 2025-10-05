@@ -127,7 +127,7 @@ const HousingSolutions = () => {
                 Start Housing Search
               </Button>
             </Link>
-            <Button variant="outline" size="lg" className="mt-4" onClick={() => setIsRoommateModalOpen(true)}>
+            <Button size="lg" className="mt-4" onClick={() => setIsRoommateModalOpen(true)}>
               Find Roommates
             </Button>
           </CardContent>
