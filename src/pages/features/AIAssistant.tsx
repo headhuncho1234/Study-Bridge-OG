@@ -11,7 +11,10 @@ const AIAssistant = () => {
   const navigate = useNavigate();
 
   const goToChatSection = () => {
-    navigate("/#chatSection"); // navigates to the main page and targets the section with id="mySection"
+    navigate("/"); // first go to the main page
+    setTimeout(() => {
+      window.location.hash = "#chatSection"; // then trigger scroll
+    }, 100);
   };
   
   const assistantFeatures = [
