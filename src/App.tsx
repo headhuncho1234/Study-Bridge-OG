@@ -87,6 +87,4 @@ function ScrollToHashElement() {
   return null;
 }
 
-export default ScrollToHashElement;
-
 export default App;
