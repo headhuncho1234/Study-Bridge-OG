@@ -50,8 +50,9 @@ const SmartMatching = () => {
               </div>
             </div>
             
-            <Link to="/">
+            <Link>
               <Button 
+                onClick={goToMainSection}
                 variant="secondary" 
                 size="lg" 
                 className="mt-4"
