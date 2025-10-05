@@ -224,15 +224,16 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
     <section className="py-20 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
+          <section id="questionnaire-section">
           <h2 className="text-4xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
             Find Your Perfect U.S. University
           </h2>
+          </section>
           <p className="text-muted-foreground text-lg mb-8">
             Get AI-powered recommendations tailored to your profile, goals, and preferences
           </p>
           
           <div className="flex flex-col items-center gap-6">
-            <section id="questionnaire-section">
               <button
                 onClick={handleStartQuestionnaire}
                 className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 rounded-lg font-semibold text-lg shadow-elegant transition-all duration-300 hover:shadow-glow"
@@ -240,7 +241,6 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
                 <Sparkles className="mr-2 h-5 w-5 inline" />
                 Start Questionnaire
               </button>
-            </section>
             
             <div className="grid md:grid-cols-3 gap-6 mt-8 max-w-3xl">
               <div className="text-center p-6 bg-card rounded-lg shadow-card">
