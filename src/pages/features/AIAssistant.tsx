@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,16 @@ import { ArrowLeft, MessageSquare, Globe, Clock, Zap, Brain, Lightbulb } from "l
 import Navbar from "@/components/Navbar";
 
 const AIAssistant = () => {
+
+  const navigate = useNavigate();
+
+  const goToMainSection = () => {
+    navigate("/"); // first go to the main page
+    setTimeout(() => {
+      window.location.hash = "#chat-section"; // then trigger scroll
+    }, 100);
+  };
+  
   const assistantFeatures = [
     {
       icon: <Clock className="h-8 w-8 text-primary" />,
@@ -274,7 +285,7 @@ const AIAssistant = () => {
               Don't wait for office hours or email responses. Get immediate, accurate answers to all your 
               study abroad questions from our intelligent AI assistant.
             </p>
-            <Button size="lg" className="mr-4">
+            <Button onClick={goToMainSection} size="lg" className="mr-4">
               Start Chatting
             </Button>
             <Button variant="outline" size="lg">
