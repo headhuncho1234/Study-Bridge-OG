@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, University } from "lucide-react";
@@ -26,6 +28,17 @@ const StudentIntake = () => {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const section = document.querySelector(location.hash);
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [location]);
 
   const generateMatches = async (formData: QuestionnaireData) => {
     setIsGeneratingMatches(true);

@@ -2,8 +2,16 @@ import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, GraduationCap, Target, Brain, CheckCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const SmartMatching = () => {
+
+  const navigate = useNavigate();
+
+  const goToMainSection = () => {
+    navigate("/#questionnaire-section"); // navigates to the main page and targets the section with id="mySection"
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-8">
@@ -165,14 +173,13 @@ const SmartMatching = () => {
             <p className="text-muted-foreground mb-6">
               Join thousands of students who have found their ideal universities through our AI-powered matching system.
             </p>
-            <Link to="/#questionnaire-section">
               <Button 
+                onClick={goToMainSection}
                 size="lg" 
                 className="mr-4"
               >
                 Start Questionnaire
               </Button>
-            </Link>
             <Link to="/community">
               <Button variant="outline" size="lg">
                 See Success Stories
