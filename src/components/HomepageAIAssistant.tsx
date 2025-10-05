@@ -39,7 +39,8 @@ const HomepageAIAssistant = () => {
     currentSession, 
     messages: dbMessages, 
     isLoading: historyLoading,
-    saveMessage
+    saveMessage,
+    setMessages: setChatMessages
   } = useChatHistory();
   
   // localStorage fallback for guest users
@@ -52,7 +53,13 @@ const HomepageAIAssistant = () => {
   
   // Use database messages for logged-in users, localStorage for guests
   const messages = user ? dbMessages : guestMessages;
-  const setMessages = user ? () => {} : setGuestMessages; // DB updates handled by hook
+  const setMessages = user ? (setter: any) => {
+    if (typeof setter === 'function') {
+      const newMessages = setter(dbMessages);
+      // Update local state for immediate display
+      return newMessages;
+    }
+  } : setGuestMessages;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -107,22 +114,29 @@ const HomepageAIAssistant = () => {
 
     const userMessageContent = input.trim();
     setInput('');
+    
+    // Immediately add user message to UI
+    const userMessage = {
+      id: Date.now().toString(),
+      session_id: currentSession?.id || '',
+      role: 'user' as const,
+      content: userMessageContent,
+      created_at: new Date().toISOString()
+    };
+    
+    if (user && currentSession) {
+      // For authenticated users, add to state immediately (saveMessage will update DB)
+      setChatMessages(prev => [...prev, userMessage]);
+    } else {
+      setMessages(prev => [...prev, userMessage]);
+    }
+    
     setIsLoading(true);
 
     try {
-      // Add user message
-      const userMessage = {
-        id: Date.now().toString(),
-        session_id: currentSession?.id || '',
-        role: 'user' as const,
-        content: userMessageContent,
-        created_at: new Date().toISOString()
-      };
-
+      // Save to database if authenticated
       if (user && currentSession) {
         await saveMessage('user', userMessageContent);
-      } else {
-        setMessages(prev => [...prev, userMessage]);
       }
 
       // Call AI API with session history

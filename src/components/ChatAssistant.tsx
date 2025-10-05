@@ -65,6 +65,17 @@ const ChatAssistant = () => {
 
     const userMessageContent = input.trim();
     setInput('');
+    
+    // Immediately add user message to UI
+    const userMessage = {
+      id: Date.now().toString(),
+      session_id: currentSession?.id || '',
+      role: 'user' as const,
+      content: userMessageContent,
+      created_at: new Date().toISOString()
+    };
+    setChatMessages(prev => [...prev, userMessage]);
+    
     setIsLoading(true);
 
     try {
@@ -77,16 +88,6 @@ const ChatAssistant = () => {
           const title = generateSessionTitle(userMessageContent);
           await updateSessionTitle(title);
         }
-      } else {
-        // Add to local state if no session (fallback)
-        const userMessage = {
-          id: Date.now().toString(),
-          session_id: '',
-          role: 'user' as const,
-          content: userMessageContent,
-          created_at: new Date().toISOString()
-        };
-        setChatMessages(prev => [...prev, userMessage]);
       }
 
       // Call OpenAI API

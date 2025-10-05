@@ -24,10 +24,12 @@ export const useChatHistory = () => {
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Create a new chat session
   const createSession = async (): Promise<ChatSession | null> => {
     try {
+      setError(null);
       const sessionData: any = {
         title: 'New Chat',
         is_active: true
@@ -45,6 +47,7 @@ export const useChatHistory = () => {
 
       if (error) {
         console.error('Error creating session:', error);
+        setError('Failed to create chat session');
         return null;
       }
 
@@ -53,6 +56,7 @@ export const useChatHistory = () => {
       return data;
     } catch (error) {
       console.error('Error creating session:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
   };
@@ -152,6 +156,7 @@ export const useChatHistory = () => {
     currentSession,
     messages,
     isLoading,
+    error,
     createSession,
     saveMessage,
     updateSessionTitle,
