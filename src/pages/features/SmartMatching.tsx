@@ -167,7 +167,6 @@ const SmartMatching = () => {
             </p>
             <Link to="/#questionnaire-section">
               <Button 
-                onClick={handleStartQuestionnaire}
                 size="lg" 
                 className="mr-4"
               >
