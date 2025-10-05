@@ -107,7 +107,7 @@ Format as JSON:
           jsonString = jsonString.substring(jsonStart, jsonEnd);
         }
         
-        housingResults = JSON.parse(jsonString);
+        scholarshipResults = JSON.parse(jsonString);
 
         
         // Ensure we have at least 5 scholarships
