@@ -219,13 +219,15 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
           </p>
           
           <div className="flex flex-col items-center gap-6">
-            <button
-              onClick={handleStartQuestionnaire}
-              className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 rounded-lg font-semibold text-lg shadow-elegant transition-all duration-300 hover:shadow-glow"
-            >
-              <Sparkles className="mr-2 h-5 w-5 inline" />
-              Start Questionnaire
-            </button>
+            <section id="questionnaire-section">
+              <button
+                onClick={handleStartQuestionnaire}
+                className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 rounded-lg font-semibold text-lg shadow-elegant transition-all duration-300 hover:shadow-glow"
+              >
+                <Sparkles className="mr-2 h-5 w-5 inline" />
+                Start Questionnaire
+              </button>
+            </section>
             
             <div className="grid md:grid-cols-3 gap-6 mt-8 max-w-3xl">
               <div className="text-center p-6 bg-card rounded-lg shadow-card">
