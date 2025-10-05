@@ -10,7 +10,7 @@ const AIAssistant = () => {
 
   const navigate = useNavigate();
 
-  const goToMainSection = () => {
+  const goToChatSection = () => {
     navigate("/"); // first go to the main page
     setTimeout(() => {
       window.location.hash = "#chat-section"; // then trigger scroll
@@ -285,7 +285,7 @@ const AIAssistant = () => {
               Don't wait for office hours or email responses. Get immediate, accurate answers to all your 
               study abroad questions from our intelligent AI assistant.
             </p>
-            <Button onClick={goToMainSection} size="lg" className="mr-4">
+            <Button onClick={goToChatSection} size="lg" className="mr-4">
               Start Chatting
             </Button>
             <Button variant="outline" size="lg">
