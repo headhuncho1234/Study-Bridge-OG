@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Copy, Flag, ExternalLink } from 'lucide-react';
+import { Send, Loader2, Copy, Flag, ExternalLink, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { formatChatMessage } from '@/utils/textFormatter';
 import { useToast } from '@/hooks/use-toast';
+import { getFallbackResponse, getTimeoutMessage, getEmptyInputMessage } from '@/utils/chatFallbacks';
 import DOMPurify from 'dompurify';
 
 interface AIResponse {
@@ -48,6 +49,9 @@ const HomepageAIAssistant = () => {
   
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState('Processing your question...');
+  const [lastUserMessage, setLastUserMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -109,11 +113,54 @@ const HomepageAIAssistant = () => {
     };
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  // Progressive loading message updater
+  useEffect(() => {
+    if (!isLoading || !loadingStartTime) return;
 
-    const userMessageContent = input.trim();
+    const updateLoadingMessage = () => {
+      const elapsed = Date.now() - loadingStartTime;
+      
+      if (elapsed > 20000) {
+        setLoadingMessage('Almost done, thank you for waiting...');
+      } else if (elapsed > 15000) {
+        setLoadingMessage('This is taking longer than usual, please wait...');
+      } else if (elapsed > 10000) {
+        setLoadingMessage(`Generating response... (${Math.floor(elapsed / 1000)}s)`);
+      } else if (elapsed > 5000) {
+        setLoadingMessage('Generating response...');
+      }
+    };
+
+    const interval = setInterval(updateLoadingMessage, 1000);
+    return () => clearInterval(interval);
+  }, [isLoading, loadingStartTime]);
+
+  const sendMessage = async (retryMessage?: string) => {
+    const messageToSend = retryMessage || input.trim();
+    
+    if (!messageToSend || isLoading) return;
+
+    // Check for empty/very short input
+    if (messageToSend.length < 2) {
+      const clarificationMsg = {
+        id: Date.now().toString(),
+        session_id: currentSession?.id || '',
+        role: 'assistant' as const,
+        content: getEmptyInputMessage(),
+        created_at: new Date().toISOString()
+      };
+      
+      if (user && currentSession) {
+        setChatMessages(prev => [...prev, clarificationMsg]);
+      } else {
+        setMessages(prev => [...prev, clarificationMsg]);
+      }
+      return;
+    }
+
+    const userMessageContent = messageToSend;
     setInput('');
+    setLastUserMessage(userMessageContent);
     
     // Immediately add user message to UI
     const userMessage = {
@@ -132,6 +179,23 @@ const HomepageAIAssistant = () => {
     }
     
     setIsLoading(true);
+    setLoadingStartTime(Date.now());
+    setLoadingMessage('Processing your question...');
+
+    // Set up timeout and warning
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 30000); // 30 second timeout
+
+    const warningTimeoutId = setTimeout(() => {
+      if (isLoading) {
+        toast({
+          title: "Still processing...",
+          description: "Your request is taking longer than usual. Please wait a moment.",
+        });
+      }
+    }, 15000); // 15 second warning
 
     try {
       // Save to database if authenticated
@@ -145,18 +209,40 @@ const HomepageAIAssistant = () => {
         content: m.content
       }));
 
-      const { data, error } = await supabase.functions.invoke('chat', {
-        body: { 
+      const response = await fetch('https://brgguzuobwzbaavaecax.supabase.co/functions/v1/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyZ2d1enVvYnd6YmFhdmFlY2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDgyNzYsImV4cCI6MjA3MjYyNDI3Nn0.UHUg1cMmauQRBm5gkuSKqppH_U-Cqns4M225_4xwqPc',
+        },
+        body: JSON.stringify({ 
           message: userMessageContent,
           context: 'homepage_assistant',
           session_history: sessionHistory,
           user_profile: user ? { country: 'US', level: 'undergraduate' } : null
-        }
+        }),
+        signal: controller.signal,
       });
 
-      if (error) throw error;
+      clearTimeout(timeoutId);
+      clearTimeout(warningTimeoutId);
 
-      const aiContent = data?.message || 'Sorry, I couldn\'t find an answer to that. Please try asking differently or check our resources.';
+      let aiContent: string;
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 504 || errorData.error_type === 'TIMEOUT') {
+          aiContent = getTimeoutMessage(userMessageContent);
+        } else if (response.status === 503 || errorData.error_type === 'NETWORK_ERROR') {
+          aiContent = "I'm having trouble connecting. Please check your internet and try again.";
+        } else {
+          aiContent = getFallbackResponse(userMessageContent);
+        }
+      } else {
+        const data = await response.json();
+        aiContent = data?.message || getFallbackResponse(userMessageContent);
+      }
       
       if (user && currentSession) {
         await saveMessage('assistant', aiContent);
@@ -172,9 +258,26 @@ const HomepageAIAssistant = () => {
       }
 
     } catch (error) {
+      clearTimeout(timeoutId);
+      clearTimeout(warningTimeoutId);
       console.error('Error sending message:', error);
       
-      const errorContent = 'Sorry, I couldn\'t find an answer to that. Please try asking differently or check our resources.';
+      let errorContent: string;
+      
+      if (error.name === 'AbortError') {
+        errorContent = getTimeoutMessage(userMessageContent);
+        toast({
+          title: "Request Timeout",
+          description: "This took longer than expected. Here's a quick answer, or try again.",
+        });
+      } else {
+        errorContent = getFallbackResponse(userMessageContent);
+        toast({
+          title: "Connection Error",
+          description: "Unable to get a response. Here's what I can tell you.",
+          variant: "destructive",
+        });
+      }
       
       if (user && currentSession) {
         await saveMessage('assistant', errorContent);
@@ -188,14 +291,10 @@ const HomepageAIAssistant = () => {
         };
         setMessages(prev => [...prev, errorMessage]);
       }
-      
-      toast({
-        title: "Connection Error",
-        description: "Unable to get a response at this time. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
+      setLoadingStartTime(null);
+      setLoadingMessage('Processing your question...');
     }
   };
 
@@ -407,10 +506,13 @@ const HomepageAIAssistant = () => {
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-muted p-4 rounded-lg rounded-bl-sm">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{loadingMessage}</span>
                     </div>
                   </div>
                 </div>
@@ -432,7 +534,7 @@ const HomepageAIAssistant = () => {
                 rows={2}
               />
               <Button
-                onClick={sendMessage}
+                onClick={() => sendMessage()}
                 disabled={!input.trim() || isLoading}
                 className="px-6 self-end"
               >
@@ -443,9 +545,25 @@ const HomepageAIAssistant = () => {
                 )}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground text-center">
-              Ask about applications, scholarships, visas, housing, wellness support & more
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Ask about applications, scholarships, visas, housing & more
+              </p>
+              {lastUserMessage && !isLoading && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    sendMessage(lastUserMessage);
+                  }}
+                  className="h-6 px-2 text-xs"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+              )}
+            </div>
           </div>
         </Card>
       </div>

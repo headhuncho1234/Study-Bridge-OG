@@ -8,6 +8,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const OPENAI_TIMEOUT = 25000; // 25 seconds
+const MAX_RETRIES = 2;
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -22,20 +25,25 @@ serve(async (req) => {
 
     const { message, context, session_history, user_profile } = await req.json();
     
-    if (!message) {
-      console.error('Message is required');
-      throw new Error('Message is required');
+    if (!message || message.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Message is required',
+          error_type: 'EMPTY_INPUT'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log('Received message for chat, length:', message.length);
 
-    // Check if this is a structured matching request (contains schema/JSON instructions)
+    // Check if this is a structured matching request
     const isStructuredMatching = message.includes('questionnaire data') || message.includes('JSON') || message.includes('matches') || message.includes('scholarship') || message.includes('housing') || message.includes('visa');
     
     // Homepage assistant context
     const isHomepageAssistant = context === 'homepage_assistant';
     
-const systemPrompt = isStructuredMatching 
+    const systemPrompt = isStructuredMatching 
       ? `You are a university matching AI that generates personalized university search results for international students. 
 
 CRITICAL: You MUST return results in the exact JSON format specified below. Each university result MUST include ALL required fields:
@@ -78,110 +86,160 @@ Return ONLY valid JSON array of 2-3 university matches in this format:
 Do NOT return plain text, tables, or markdown. Only return valid JSON following this schema.`
       : 'You are StudyBridge, a friendly and knowledgeable AI assistant for international students. Help with questions about studying in the U.S., including applications, scholarships, visas, housing, student life, and general guidance. Be helpful, encouraging, and provide practical advice. Keep responses conversational and supportive.';
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { 
-            role: 'system', 
-            content: systemPrompt
-          },
-          ...(session_history || []),
-          { role: 'user', content: message }
-        ],
-        max_tokens: isHomepageAssistant ? 800 : 4000,
-        temperature: 0.2,
-      }),
-    });
+    let lastError: Error | null = null;
+    let assistantMessage = '';
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
-      console.error('OpenAI API error:', response.status, response.statusText, errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Invalid OpenAI response structure:', data);
-      throw new Error('Invalid response from AI service');
-    }
-
-    const aiResponse = data.choices[0].message.content;
-    console.log('AI response generated successfully, length:', aiResponse.length);
-
-    // Only validate JSON for structured matching requests
-    if (isStructuredMatching) {
+    // Retry loop with exponential backoff
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const jsonStart = aiResponse.indexOf('{');
-        const jsonEnd = aiResponse.lastIndexOf('}') + 1;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT);
+
+        console.log(`OpenAI API call attempt ${attempt + 1}/${MAX_RETRIES + 1}`);
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { 
+                role: 'system', 
+                content: systemPrompt
+              },
+              ...(session_history || []),
+              { role: 'user', content: message }
+            ],
+            max_tokens: isHomepageAssistant ? 800 : 4000,
+            temperature: 0.2,
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
+          console.error('OpenAI API error:', response.status, response.statusText, errorData);
+          throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
         
-        if (jsonStart === -1 || jsonEnd === 0) {
-          throw new Error('No JSON found in response');
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+          console.error('Invalid OpenAI response structure:', data);
+          throw new Error('Invalid response from AI service');
+        }
+
+        assistantMessage = data.choices[0].message.content;
+        console.log('OpenAI response received successfully');
+
+        // Only validate JSON for structured matching requests
+        if (isStructuredMatching) {
+          try {
+            const jsonStart = assistantMessage.indexOf('{');
+            const jsonEnd = assistantMessage.lastIndexOf('}') + 1;
+            
+            if (jsonStart === -1 || jsonEnd === 0) {
+              throw new Error('No JSON found in response');
+            }
+            
+            const jsonString = assistantMessage.substring(jsonStart, jsonEnd);
+            const parsedJson = JSON.parse(jsonString);
+            
+            // Validate required fields for different result types
+            if (parsedJson.matches && Array.isArray(parsedJson.matches)) {
+              console.log('University matches validation successful:', parsedJson.matches.length);
+            } else if (parsedJson.scholarships && Array.isArray(parsedJson.scholarships)) {
+              console.log('Scholarship matches validation successful:', parsedJson.scholarships.length);
+            } else if (parsedJson.housing_options && Array.isArray(parsedJson.housing_options)) {
+              console.log('Housing options validation successful:', parsedJson.housing_options.length);
+            } else if (parsedJson.profile || parsedJson.roadmap) {
+              console.log('Visa guidance validation successful');
+            } else {
+              throw new Error('Invalid JSON structure: missing expected data arrays or objects');
+            }
+          } catch (jsonError) {
+            console.error('JSON validation warning:', jsonError);
+            // Don't throw error, just log the warning and continue
+            console.log('Proceeding with potentially imperfect JSON structure');
+          }
         }
         
-        const jsonString = aiResponse.substring(jsonStart, jsonEnd);
-        const parsedJson = JSON.parse(jsonString);
-        
-        // Validate required fields for different result types
-        if (parsedJson.matches && Array.isArray(parsedJson.matches)) {
-          console.log('University matches validation successful:', parsedJson.matches.length);
-        } else if (parsedJson.scholarships && Array.isArray(parsedJson.scholarships)) {
-          console.log('Scholarship matches validation successful:', parsedJson.scholarships.length);
-        } else if (parsedJson.housing_options && Array.isArray(parsedJson.housing_options)) {
-          console.log('Housing options validation successful:', parsedJson.housing_options.length);
-        } else if (parsedJson.profile || parsedJson.roadmap) {
-          console.log('Visa guidance validation successful');
-        } else {
-          throw new Error('Invalid JSON structure: missing expected data arrays or objects');
+        return new Response(
+          JSON.stringify({ message: assistantMessage }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`Attempt ${attempt + 1} failed:`, error);
+
+        // If it's a timeout and not the last attempt, retry
+        if (error.name === 'AbortError' && attempt < MAX_RETRIES) {
+          const backoffDelay = Math.pow(2, attempt) * 1000; // 1s, 2s
+          console.log(`Retrying in ${backoffDelay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, backoffDelay));
+          continue;
         }
-      } catch (jsonError) {
-        console.error('JSON validation warning:', jsonError);
-        // Don't throw error, just log the warning and continue
-        console.log('Proceeding with potentially imperfect JSON structure');
+
+        // If it's the last attempt or non-timeout error, break
+        if (attempt === MAX_RETRIES || error.name !== 'AbortError') {
+          break;
+        }
       }
     }
 
-    return new Response(JSON.stringify({ message: aiResponse }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-    
+    // If all retries failed, return timeout response
+    console.error('All retry attempts failed:', lastError);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Request timeout',
+        error_type: 'TIMEOUT',
+        message: "I'm taking longer than expected to respond. Please try asking your question again."
+      }),
+      { 
+        status: 504, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+
   } catch (error) {
     console.error('Error in chat function:', error);
     
-    // Return different error types for better frontend handling
-    let errorType = 'unknown';
+    // Determine error type for better frontend handling
+    let errorType = 'INTERNAL_ERROR';
     let statusCode = 500;
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
     if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-      errorType = 'network';
+      errorType = 'NETWORK_ERROR';
       statusCode = 503;
     } else if (errorMessage.includes('JSON')) {
-      errorType = 'json_parse';
+      errorType = 'JSON_PARSE';
       statusCode = 422;
     } else if (errorMessage.includes('API key')) {
-      errorType = 'auth';
+      errorType = 'AUTH';
       statusCode = 401;
-    } else if (errorMessage.includes('timeout')) {
-      errorType = 'timeout';
-      statusCode = 408;
+    } else if (error.name === 'AbortError') {
+      errorType = 'TIMEOUT';
+      statusCode = 504;
     }
     
-    return new Response(JSON.stringify({ 
-      error: 'Failed to generate university matches',
-      error_type: errorType,
-      details: errorMessage,
-      timestamp: new Date().toISOString()
-    }), {
-      status: statusCode,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: 'Internal server error',
+        error_type: errorType,
+        details: errorMessage 
+      }),
+      { 
+        status: statusCode, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 });

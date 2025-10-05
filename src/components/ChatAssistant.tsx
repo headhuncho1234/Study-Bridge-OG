@@ -3,12 +3,13 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send, Minimize2, Maximize2, X, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Minimize2, Maximize2, X, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import { formatChatMessage, generateSessionTitle } from '@/utils/textFormatter';
 import { useToast } from '@/hooks/use-toast';
+import { getFallbackResponse, getTimeoutMessage, getEmptyInputMessage } from '@/utils/chatFallbacks';
 
 const ChatAssistant = () => {
   const { user } = useAuth();
@@ -26,6 +27,8 @@ const ChatAssistant = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Processing...');
+  const [lastUserMessage, setLastUserMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [hasInitialMessage, setHasInitialMessage] = useState(false);
@@ -60,11 +63,42 @@ const ChatAssistant = () => {
     }
   }, [historyLoading, chatMessages.length, hasInitialMessage, currentSession, setChatMessages]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  // Progressive loading messages
+  useEffect(() => {
+    if (!isLoading) return;
+    
+    const messages = ['Processing...', 'Generating...', 'Almost done...'];
+    let index = 0;
+    
+    const interval = setInterval(() => {
+      index = (index + 1) % messages.length;
+      setLoadingMessage(messages[index]);
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
-    const userMessageContent = input.trim();
+  const sendMessage = async (retryMessage?: string) => {
+    const messageToSend = retryMessage || input.trim();
+    
+    if (!messageToSend || isLoading) return;
+
+    // Check for empty input
+    if (messageToSend.length < 2) {
+      const clarificationMsg = {
+        id: Date.now().toString(),
+        session_id: currentSession?.id || '',
+        role: 'assistant' as const,
+        content: getEmptyInputMessage(),
+        created_at: new Date().toISOString()
+      };
+      setChatMessages(prev => [...prev, clarificationMsg]);
+      return;
+    }
+
+    const userMessageContent = messageToSend;
     setInput('');
+    setLastUserMessage(userMessageContent);
     
     // Immediately add user message to UI
     const userMessage = {
@@ -77,6 +111,10 @@ const ChatAssistant = () => {
     setChatMessages(prev => [...prev, userMessage]);
     
     setIsLoading(true);
+    setLoadingMessage('Processing...');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
       // Save user message to database if session exists
@@ -90,17 +128,36 @@ const ChatAssistant = () => {
         }
       }
 
-      // Call OpenAI API
-      const { data, error } = await supabase.functions.invoke('chat', {
-        body: { 
+      // Call chat API with timeout
+      const response = await fetch('https://brgguzuobwzbaavaecax.supabase.co/functions/v1/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyZ2d1enVvYnd6YmFhdmFlY2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDgyNzYsImV4cCI6MjA3MjYyNDI3Nn0.UHUg1cMmauQRBm5gkuSKqppH_U-Cqns4M225_4xwqPc',
+        },
+        body: JSON.stringify({ 
           message: userMessageContent,
           context: 'study_abroad_assistant'
-        }
+        }),
+        signal: controller.signal,
       });
 
-      if (error) throw error;
+      clearTimeout(timeoutId);
 
-      const assistantContent = data?.response || data?.message || 'I apologize, but I encountered an issue. Please try again.';
+      let assistantContent: string;
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 504 || errorData.error_type === 'TIMEOUT') {
+          assistantContent = getTimeoutMessage(userMessageContent);
+        } else {
+          assistantContent = getFallbackResponse(userMessageContent);
+        }
+      } else {
+        const data = await response.json();
+        assistantContent = data?.response || data?.message || getFallbackResponse(userMessageContent);
+      }
       
       // Save assistant message to database if session exists
       if (currentSession) {
@@ -118,9 +175,16 @@ const ChatAssistant = () => {
       }
 
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Error sending message:', error);
       
-      const errorContent = 'Unable to get a response at this time. Please try again.';
+      let errorContent: string;
+      
+      if (error.name === 'AbortError') {
+        errorContent = getTimeoutMessage(userMessageContent);
+      } else {
+        errorContent = getFallbackResponse(userMessageContent);
+      }
       
       if (currentSession) {
         await saveMessage('assistant', errorContent);
@@ -136,12 +200,12 @@ const ChatAssistant = () => {
       }
       
       toast({
-        title: "Connection Error",
-        description: "Unable to get a response at this time. Please try again.",
-        variant: "destructive",
+        title: error.name === 'AbortError' ? "Timeout" : "Connection Error",
+        description: "Here's what I can tell you based on your question.",
       });
     } finally {
       setIsLoading(false);
+      setLoadingMessage('Processing...');
     }
   };
 
@@ -238,10 +302,13 @@ const ChatAssistant = () => {
                 {isLoading && (
                   <div className="flex justify-start">
                     <div className="bg-muted p-3 rounded-lg rounded-bl-sm shadow-sm">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{loadingMessage}</span>
                       </div>
                     </div>
                   </div>
@@ -263,7 +330,7 @@ const ChatAssistant = () => {
                   rows={2}
                 />
                 <Button
-                  onClick={sendMessage}
+                  onClick={() => sendMessage()}
                   disabled={!input.trim() || isLoading}
                   size="sm"
                   className="px-3 self-end"
@@ -275,9 +342,24 @@ const ChatAssistant = () => {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Ask about universities, visas, scholarships, housing & more
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Ask about universities, visas, scholarships & more
+                </p>
+                {lastUserMessage && !isLoading && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      sendMessage(lastUserMessage);
+                    }}
+                    className="h-5 px-1 text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
           </>
         )}
