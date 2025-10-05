@@ -9,9 +9,9 @@ const SmartMatching = () => {
   const navigate = useNavigate();
 
   const goToMainSection = () => {
-    navigate("/#questionnaire-section"); // navigates to the main page and targets the section with id="mySection"
+    window.location.href = "/#questionnaire-section";
   };
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-8">
