@@ -97,7 +97,7 @@ const ScholarshipDatabase = () => {
             </div>
             
             <Link to="/questionnaires/scholarships">
-              <Button variant="ghost" size="lg" className="mt-4">
+              <Button variant="link" size="lg" className="mt-4">
                 Find My Scholarships
               </Button>
             </Link>
