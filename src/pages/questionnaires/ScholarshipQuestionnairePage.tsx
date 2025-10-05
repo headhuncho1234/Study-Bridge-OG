@@ -94,21 +94,7 @@ Format as JSON:
 
       let scholarshipResults;
       try {
-        let jsonString = data.message || data.response;
-
-        if (!jsonString) {
-          throw new Error("Empty AI response");
-        }
-        
-        // Find and isolate the JSON array/object part, if ChatGPT returned extra text
-        const jsonStart = jsonString.indexOf("{");
-        const jsonEnd = jsonString.lastIndexOf("}") + 1;
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          jsonString = jsonString.substring(jsonStart, jsonEnd);
-        }
-        
-        scholarshipResults = JSON.parse(jsonString);
-
+        scholarshipResults = JSON.parse(data.response);
         
         // Ensure we have at least 5 scholarships
         if (!scholarshipResults.scholarships || scholarshipResults.scholarships.length < 5) {

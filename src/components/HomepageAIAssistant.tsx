@@ -1,6 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,18 +54,6 @@ const HomepageAIAssistant = () => {
   const [lastUserMessage, setLastUserMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-
-  const location = useLocation();
-
-  useEffect(() => {
-    if (location.hash) {
-      const section = document.querySelector(location.hash);
-      if (section) {
-        section.scrollIntoView({ behavior: "smooth" });
-      }
-    }
-  }, [location]);
   
   // Use database messages for logged-in users, localStorage for guests
   const messages = user ? dbMessages : guestMessages;
@@ -486,11 +472,9 @@ const HomepageAIAssistant = () => {
     <section className="py-16 px-4 bg-gradient-to-r from-primary/5 to-secondary/5">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <section id="chat-section">
-            <h2 className="text-3xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
-              AI-Powered Student Assistant
-            </h2>
-          </section>
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
+            AI-Powered Student Assistant
+          </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Get instant, personalized guidance for every step of your international education journey
           </p>

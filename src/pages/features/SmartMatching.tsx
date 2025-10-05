@@ -49,14 +49,16 @@ const SmartMatching = () => {
                 </p>
               </div>
             </div>
+            
+            <Link to="/">
               <Button 
-                onClick={goToMainSection}
                 variant="secondary" 
                 size="lg" 
                 className="mt-4"
               >
                 Start Your Matching Journey
               </Button>
+            </Link>
           </CardContent>
         </Card>
 
