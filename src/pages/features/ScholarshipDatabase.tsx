@@ -1,13 +1,23 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, DollarSign, Award, Search, Users } from "lucide-react";
+import { ArrowLeft, DollarSign, Award, Search, Users, Star, Sparkles } from "lucide-react";
 import ScholarshipFilters, { ScholarshipFilters as FilterType } from "@/components/scholarships/ScholarshipFilters";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
+import { useScholarshipMatching } from "@/hooks/useScholarshipMatching";
+import ScholarshipMatchCard from "@/components/scholarships/ScholarshipMatchCard";
+import { useSavedScholarships } from "@/hooks/useSavedScholarships";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ScholarshipDatabase = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { matches, findMatches, isLoading: matchesLoading } = useScholarshipMatching();
+  const { savedScholarships, saveScholarship, unsaveScholarship } = useSavedScholarships(user?.id);
+  
   const [filters, setFilters] = useState<FilterType>({
     searchQuery: "",
     fieldOfStudy: "",
@@ -17,6 +27,24 @@ const ScholarshipDatabase = () => {
     gpaRequirement: "",
     scholarshipType: ""
   });
+
+  useEffect(() => {
+    if (user) {
+      findMatches(user.id);
+    }
+  }, [user]);
+
+  const isScholarshipSaved = (scholarshipId: string) => {
+    return savedScholarships.some(s => s.scholarship_id === scholarshipId);
+  };
+
+  const handleSaveScholarship = async (id: string) => {
+    await saveScholarship(id);
+  };
+
+  const handleUnsaveScholarship = async (id: string) => {
+    await unsaveScholarship(id);
+  };
   const scholarshipTypes = [
     {
       title: "Merit-Based Scholarships",
@@ -96,11 +124,21 @@ const ScholarshipDatabase = () => {
               </div>
             </div>
             
-            <Link to="/questionnaires/scholarships">
-              <Button variant="ghost" size="lg" className="mt-4">
-                Find My Scholarships
-              </Button>
-            </Link>
+            <div className="flex gap-4">
+              <Link to="/questionnaires/scholarships">
+                <Button variant="ghost" size="lg" className="mt-4">
+                  Find My Scholarships
+                </Button>
+              </Link>
+              {user && (
+                <Link to="/features/saved-scholarships">
+                  <Button variant="outline" size="lg" className="mt-4">
+                    <Star className="h-4 w-4 mr-2" />
+                    My Saved Scholarships ({savedScholarships.length})
+                  </Button>
+                </Link>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -111,44 +149,101 @@ const ScholarshipDatabase = () => {
           </div>
           
           <div className="lg:col-span-3">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-4">Available Scholarships</h2>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-muted-foreground">Showing scholarships based on your criteria</p>
-                <Button variant="outline" size="sm">
-                  Save Search
-                </Button>
-              </div>
-            </div>
+            {user && matches.length > 0 && (
+              <Card className="mb-6 bg-gradient-to-r from-primary/10 to-secondary/10">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Personalized For You</h3>
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    {matches.length} scholarships match your profile with scores above 30%
+                  </p>
+                  <Link to="/features/saved-scholarships">
+                    <Button variant="outline">
+                      View All My Matches
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Scholarship Types */}
-            <div className="space-y-4">
-              {scholarshipTypes.map((type, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{type.title}</CardTitle>
-                      <div className="flex gap-2">
-                        <Badge variant="secondary">{type.range}</Badge>
-                        <Button size="sm">Apply Now</Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4">{type.description}</p>
-                    <div className="space-y-2">
-                      <p className="font-medium text-sm">Examples:</p>
-                      {type.examples.map((example, idx) => (
-                        <p key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
-                          <Award className="h-3 w-3" />
-                          {example}
-                        </p>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Tabs defaultValue={user && matches.length > 0 ? "matches" : "all"} className="space-y-6">
+              {user && matches.length > 0 && (
+                <TabsList>
+                  <TabsTrigger value="matches">My Matches ({matches.length})</TabsTrigger>
+                  <TabsTrigger value="all">All Scholarships</TabsTrigger>
+                </TabsList>
+              )}
+
+              {user && matches.length > 0 && (
+                <TabsContent value="matches" className="space-y-4">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold mb-2">Your Personalized Matches</h2>
+                    <p className="text-muted-foreground">
+                      These scholarships are ranked by how well they match your profile
+                    </p>
+                  </div>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {matches.slice(0, 9).map((scholarship: any) => (
+                      <ScholarshipMatchCard
+                        key={scholarship.id}
+                        scholarship={scholarship}
+                        isSaved={isScholarshipSaved(scholarship.id)}
+                        onSave={handleSaveScholarship}
+                        onUnsave={handleUnsaveScholarship}
+                      />
+                    ))}
+                  </div>
+                </TabsContent>
+              )}
+
+              <TabsContent value={user && matches.length > 0 ? "all" : undefined} className="space-y-4">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold mb-4">All Scholarships</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-muted-foreground">Browse all available scholarships</p>
+                    <Link to="/questionnaires/scholarships">
+                      <Button variant="outline" size="sm">
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Get Personalized Matches
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Scholarship Types */}
+                <div className="space-y-4">
+                  {scholarshipTypes.map((type, index) => (
+                    <Card key={index} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{type.title}</CardTitle>
+                          <div className="flex gap-2">
+                            <Badge variant="secondary">{type.range}</Badge>
+                            <Link to="/questionnaires/scholarships">
+                              <Button size="sm">Find Matches</Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground mb-4">{type.description}</p>
+                        <div className="space-y-2">
+                          <p className="font-medium text-sm">Examples:</p>
+                          {type.examples.map((example, idx) => (
+                            <p key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
+                              <Award className="h-3 w-3" />
+                              {example}
+                            </p>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
 
@@ -250,7 +345,7 @@ const ScholarshipDatabase = () => {
             </Link>
             <Link to="/community?channel=scholarships">
               <Button variant="outline" size="lg">
-                Success Stories
+                Read Success Stories
               </Button>
             </Link>
           </CardContent>

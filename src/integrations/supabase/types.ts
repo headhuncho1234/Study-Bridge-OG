@@ -390,6 +390,7 @@ export type Database = {
       scholarships: {
         Row: {
           amount: string
+          application_difficulty: string | null
           application_link: string | null
           category: string
           country: string | null
@@ -397,14 +398,25 @@ export type Database = {
           deadline: string
           description: string
           eligibility: string
+          eligible_countries: Json | null
+          eligible_degree_levels: Json | null
+          eligible_majors: Json | null
+          estimated_time_hours: number | null
           field_of_study: string | null
+          financial_need_required: boolean | null
           id: string
+          max_gpa: number | null
+          min_gpa: number | null
           provider: string
+          required_essays: number | null
+          scholarship_type: string | null
+          tags: Json | null
           title: string
           updated_at: string
         }
         Insert: {
           amount: string
+          application_difficulty?: string | null
           application_link?: string | null
           category: string
           country?: string | null
@@ -412,14 +424,25 @@ export type Database = {
           deadline: string
           description: string
           eligibility: string
+          eligible_countries?: Json | null
+          eligible_degree_levels?: Json | null
+          eligible_majors?: Json | null
+          estimated_time_hours?: number | null
           field_of_study?: string | null
+          financial_need_required?: boolean | null
           id?: string
+          max_gpa?: number | null
+          min_gpa?: number | null
           provider: string
+          required_essays?: number | null
+          scholarship_type?: string | null
+          tags?: Json | null
           title: string
           updated_at?: string
         }
         Update: {
           amount?: string
+          application_difficulty?: string | null
           application_link?: string | null
           category?: string
           country?: string | null
@@ -427,9 +450,19 @@ export type Database = {
           deadline?: string
           description?: string
           eligibility?: string
+          eligible_countries?: Json | null
+          eligible_degree_levels?: Json | null
+          eligible_majors?: Json | null
+          estimated_time_hours?: number | null
           field_of_study?: string | null
+          financial_need_required?: boolean | null
           id?: string
+          max_gpa?: number | null
+          min_gpa?: number | null
           provider?: string
+          required_essays?: number | null
+          scholarship_type?: string | null
+          tags?: Json | null
           title?: string
           updated_at?: string
         }
@@ -517,6 +550,104 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_saved_scholarships: {
+        Row: {
+          application_deadline: string | null
+          application_status: string | null
+          id: string
+          notes: string | null
+          priority: number | null
+          saved_at: string | null
+          scholarship_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          application_deadline?: string | null
+          application_status?: string | null
+          id?: string
+          notes?: string | null
+          priority?: number | null
+          saved_at?: string | null
+          scholarship_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          application_deadline?: string | null
+          application_status?: string | null
+          id?: string
+          notes?: string | null
+          priority?: number | null
+          saved_at?: string | null
+          scholarship_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_saved_scholarships_scholarship_id_fkey"
+            columns: ["scholarship_id"]
+            isOneToOne: false
+            referencedRelation: "scholarships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_scholarship_preferences: {
+        Row: {
+          activities: Json | null
+          awards: string | null
+          citizenship: string | null
+          created_at: string | null
+          degree_level: string | null
+          demographics: Json | null
+          essay_experience: string | null
+          financial_need: string | null
+          gpa: number | null
+          id: string
+          major: string | null
+          preferred_scholarship_types: Json | null
+          test_scores: Json | null
+          timeline: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activities?: Json | null
+          awards?: string | null
+          citizenship?: string | null
+          created_at?: string | null
+          degree_level?: string | null
+          demographics?: Json | null
+          essay_experience?: string | null
+          financial_need?: string | null
+          gpa?: number | null
+          id?: string
+          major?: string | null
+          preferred_scholarship_types?: Json | null
+          test_scores?: Json | null
+          timeline?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activities?: Json | null
+          awards?: string | null
+          citizenship?: string | null
+          created_at?: string | null
+          degree_level?: string | null
+          demographics?: Json | null
+          essay_experience?: string | null
+          financial_need?: string | null
+          gpa?: number | null
+          id?: string
+          major?: string | null
+          preferred_scholarship_types?: Json | null
+          test_scores?: Json | null
+          timeline?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       wellness_products: {
         Row: {

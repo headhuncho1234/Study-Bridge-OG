@@ -28,6 +28,7 @@ import AIAssistant from "./pages/features/AIAssistant";
 import HousingQuestionnairePage from "./pages/questionnaires/HousingQuestionnairePage";
 import VisaQuestionnairePage from "./pages/questionnaires/VisaQuestionnairePage";
 import ScholarshipQuestionnairePage from "./pages/questionnaires/ScholarshipQuestionnairePage";
+import SavedScholarships from "./pages/features/SavedScholarships";
 import Scoreboard from "./pages/Scoreboard";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
           <Route path="/questionnaires/housing" element={<HousingQuestionnairePage />} />
           <Route path="/questionnaires/visa" element={<VisaQuestionnairePage />} />
           <Route path="/questionnaires/scholarships" element={<ScholarshipQuestionnairePage />} />
+          <Route path="/features/saved-scholarships" element={<SavedScholarships />} />
           <Route path="/scoreboard" element={<Scoreboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

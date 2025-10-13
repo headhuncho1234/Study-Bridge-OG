@@ -2,10 +2,14 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Calendar, DollarSign, Globe } from "lucide-react";
+import { ExternalLink, Calendar, DollarSign, Globe, Star, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/useAuth";
+import { useSavedScholarships } from "@/hooks/useSavedScholarships";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 interface Scholarship {
   id: string;
@@ -24,7 +28,40 @@ interface Scholarship {
 const ScholarshipsList = () => {
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { savedScholarships, saveScholarship, unsaveScholarship } = useSavedScholarships(user?.id);
+
+  const isScholarshipSaved = (scholarshipId: string) => {
+    return savedScholarships.some(s => s.scholarship_id === scholarshipId);
+  };
+
+  const handleToggleSave = async (scholarshipId: string) => {
+    if (!user) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to save scholarships.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isScholarshipSaved(scholarshipId)) {
+      await unsaveScholarship(scholarshipId);
+    } else {
+      await saveScholarship(scholarshipId);
+    }
+  };
+
+  const handleApply = (scholarship: Scholarship) => {
+    if (scholarship.application_link) {
+      window.open(scholarship.application_link, '_blank');
+    } else {
+      setSelectedScholarship(scholarship);
+    }
+  };
 
   useEffect(() => {
     loadScholarships();
@@ -102,13 +139,23 @@ const ScholarshipsList = () => {
   }
 
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {scholarships.map((scholarship) => (
+    <>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {scholarships.map((scholarship) => (
         <Card key={scholarship.id} className="hover:shadow-lg transition-shadow flex flex-col">
           <CardHeader>
             <div className="flex items-start justify-between gap-2 mb-2">
               <CardTitle className="text-lg line-clamp-2">{scholarship.title}</CardTitle>
-              <Badge variant="secondary">{scholarship.category}</Badge>
+              <div className="flex gap-2">
+                <Badge variant="secondary">{scholarship.category}</Badge>
+                <Button
+                  variant={isScholarshipSaved(scholarship.id) ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => handleToggleSave(scholarship.id)}
+                >
+                  <Star className={`h-4 w-4 ${isScholarshipSaved(scholarship.id) ? 'fill-current' : ''}`} />
+                </Button>
+              </div>
             </div>
             <p className="text-sm text-muted-foreground">{scholarship.provider}</p>
           </CardHeader>
@@ -141,21 +188,83 @@ const ScholarshipsList = () => {
               </div>
             </div>
             
-            {scholarship.application_link && (
+            <div className="flex gap-2 mt-auto">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full mt-auto"
-                onClick={() => window.open(scholarship.application_link!, '_blank')}
+                className="flex-1"
+                onClick={() => handleApply(scholarship)}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Apply Now
               </Button>
-            )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedScholarship(scholarship)}
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Details
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ))}
     </div>
+
+    <Dialog open={!!selectedScholarship} onOpenChange={() => setSelectedScholarship(null)}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{selectedScholarship?.title}</DialogTitle>
+          <DialogDescription>{selectedScholarship?.provider}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-semibold mb-2">Award Amount</h4>
+            <p className="text-lg text-primary font-bold">{selectedScholarship?.amount}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2">Description</h4>
+            <p className="text-muted-foreground">{selectedScholarship?.description}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2">Eligibility Requirements</h4>
+            <p className="text-muted-foreground">{selectedScholarship?.eligibility}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2">Deadline</h4>
+            <p className="text-muted-foreground">
+              {selectedScholarship?.deadline && formatDeadline(selectedScholarship.deadline)}
+            </p>
+          </div>
+          {!selectedScholarship?.application_link && (
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                No direct application link available. Please contact {selectedScholarship?.provider} directly or visit their website to apply.
+              </p>
+            </div>
+          )}
+          <div className="flex gap-2">
+            {selectedScholarship && (
+              <Button
+                onClick={() => handleToggleSave(selectedScholarship.id)}
+                variant={isScholarshipSaved(selectedScholarship.id) ? "default" : "outline"}
+              >
+                <Star className={`h-4 w-4 mr-2 ${isScholarshipSaved(selectedScholarship.id) ? 'fill-current' : ''}`} />
+                {isScholarshipSaved(selectedScholarship.id) ? 'Saved' : 'Save Scholarship'}
+              </Button>
+            )}
+            {selectedScholarship?.application_link && (
+              <Button onClick={() => window.open(selectedScholarship.application_link!, '_blank')}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Apply Now
+              </Button>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 };
 

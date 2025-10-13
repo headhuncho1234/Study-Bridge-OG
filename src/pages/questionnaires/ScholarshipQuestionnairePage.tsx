@@ -7,16 +7,83 @@ import Navbar from "@/components/Navbar";
 import ScholarshipQuestionnaire, { ScholarshipPreferences } from "@/components/questionnaire/ScholarshipQuestionnaire";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useScholarshipMatching } from "@/hooks/useScholarshipMatching";
 
 const ScholarshipQuestionnairePage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { findMatches } = useScholarshipMatching();
 
   const generateScholarshipMatches = async (formData: ScholarshipPreferences) => {
     setIsGenerating(true);
     
     try {
+      // Save preferences to database if user is logged in
+      if (user) {
+        const { error: saveError } = await supabase
+          .from('user_scholarship_preferences')
+          .upsert({
+            user_id: user.id,
+            citizenship: formData.citizenship,
+            gpa: formData.gpa[0],
+            major: formData.major,
+            degree_level: formData.degreeLevel,
+            financial_need: formData.financialNeed,
+            test_scores: formData.testScores,
+            demographics: formData.demographics,
+            activities: formData.activities,
+            awards: formData.awards,
+            timeline: formData.timeline,
+            essay_experience: formData.essayExperience,
+          });
+
+        if (saveError) {
+          console.error('Error saving preferences:', saveError);
+        }
+
+        // Use the matching algorithm
+        const matches = await findMatches(user.id);
+        if (matches.length > 0) {
+          navigate('/results', {
+            state: {
+              matchData: {
+                profile: {
+                  summary: `Found ${matches.length} scholarships that match your profile`,
+                  strengths: ["Strong academic record", "Diverse background"],
+                  areas_to_improve: [],
+                  estimated_total_available: matches.reduce((sum, m) => {
+                    const amount = parseInt(m.amount.replace(/[^0-9]/g, '')) || 0;
+                    return sum + amount;
+                  }, 0)
+                },
+                scholarships: matches.map((m: any) => ({
+                  name: m.title,
+                  sponsor: m.provider,
+                  amount: m.amount,
+                  deadline: m.deadline,
+                  match_score: m.match_score,
+                  difficulty: m.application_difficulty || 'Medium',
+                  requirements: m.eligibility?.split(',') || [],
+                  essays_required: m.required_essays || 0,
+                  application_link: m.application_link || '',
+                  tips: m.match_reasons?.join('. ') || ''
+                })),
+                strategy: {
+                  application_timeline: "Start applications 2 months before deadlines",
+                  priority_order: matches.slice(0, 3).map((m: any) => m.title),
+                  time_investment: "5-8 hours per week recommended"
+                }
+              },
+              source: 'scholarship-questionnaire'
+            }
+          });
+          setIsGenerating(false);
+          return;
+        }
+      }
       const prompt = `Find the best scholarship matches based on this profile (MUST return at least 5 scholarships):
 
 Citizenship: ${formData.citizenship}
