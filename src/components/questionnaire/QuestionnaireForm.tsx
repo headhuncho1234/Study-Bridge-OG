@@ -147,9 +147,6 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
                     <SelectItem value="liberal-arts">Liberal Arts</SelectItem>
                     <SelectItem value="communications">Communications</SelectItem>
                     <SelectItem value="education">Education</SelectItem>
-                    <SelectItem value="history">History</SelectItem>
-                    <SelectItem value="political-science">Political Science</SelectItem>
-                    <SelectItem value="sociology">Sociology</SelectItem>
                     <SelectItem value="nursing">Nursing</SelectItem>
                     <SelectItem value="art">Art & Design</SelectItem>
                     <SelectItem value="music">Music</SelectItem>
