@@ -38,8 +38,67 @@ const SupportQuestionnaire = ({ onClose, onHealthInsurance }: SupportQuestionnai
   ];
 
   const africanCountries = [
-    'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Ethiopia', 'Egypt', 
-    'Morocco', 'Tanzania', 'Uganda', 'Zimbabwe', 'Other'
+    // North Africa
+    'Algeria',
+    'Egypt',
+    'Libya',
+    'Morocco',
+    'Sudan',
+    'Tunisia',
+    // West Africa
+    'Benin',
+    'Burkina Faso',
+    'Cape Verde',
+    'Côte d\'Ivoire (Ivory Coast)',
+    'Gambia',
+    'Ghana',
+    'Guinea',
+    'Guinea-Bissau',
+    'Liberia',
+    'Mali',
+    'Mauritania',
+    'Niger',
+    'Nigeria',
+    'Senegal',
+    'Sierra Leone',
+    'Togo',
+    // Central Africa
+    'Cameroon',
+    'Central African Republic',
+    'Chad',
+    'Congo (Brazzaville)',
+    'Congo (Kinshasa / DRC)',
+    'Equatorial Guinea',
+    'Gabon',
+    'São Tomé and Príncipe',
+    // East Africa
+    'Burundi',
+    'Comoros',
+    'Djibouti',
+    'Eritrea',
+    'Ethiopia',
+    'Kenya',
+    'Madagascar',
+    'Malawi',
+    'Mauritius',
+    'Mozambique',
+    'Rwanda',
+    'Seychelles',
+    'Somalia',
+    'South Sudan',
+    'Tanzania',
+    'Uganda',
+    'Zambia',
+    'Zimbabwe',
+    // Southern Africa
+    'Angola',
+    'Botswana',
+    'Eswatini (Swaziland)',
+    'Lesotho',
+    'Namibia',
+    'South Africa',
+    // Other
+    'Other'
   ];
 
   const clubTypes = [
