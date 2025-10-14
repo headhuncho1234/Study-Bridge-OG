@@ -109,11 +109,13 @@ const QuestionnaireForm = ({ onSubmit, isLoading }: QuestionnaireFormProps) => {
                     <SelectItem value="business">Business Administration</SelectItem>
                     <SelectItem value="medicine">Pre-Medicine</SelectItem>
                     <SelectItem value="biology">Biology</SelectItem>
+                    <SelectItem value="molecular-science">Molecular Science</SelectItem>
                     <SelectItem value="psychology">Psychology</SelectItem>
                     <SelectItem value="economics">Economics</SelectItem>
                     <SelectItem value="mathematics">Mathematics</SelectItem>
                     <SelectItem value="physics">Physics</SelectItem>
                     <SelectItem value="chemistry">Chemistry</SelectItem>
+                    <SelectItem value="information-systems">Information Systems</SelectItem>
                     <SelectItem value="liberal-arts">Liberal Arts</SelectItem>
                     <SelectItem value="communications">Communications</SelectItem>
                     <SelectItem value="education">Education</SelectItem>
