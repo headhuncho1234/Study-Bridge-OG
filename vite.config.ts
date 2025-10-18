@@ -20,7 +20,17 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    target: 'es2020', // Target modern browsers to avoid unnecessary transpilation
+    target: 'es2020',
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-toast'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+        },
+      },
+    },
   },
   esbuild: {
     target: 'es2020', // Ensure esbuild also targets modern browsers
