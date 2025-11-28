@@ -693,10 +693,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      increment_comment_count: {
-        Args: { post_id: string }
-        Returns: undefined
-      }
+      increment_comment_count: { Args: { post_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

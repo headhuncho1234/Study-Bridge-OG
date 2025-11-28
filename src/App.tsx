@@ -1,10 +1,15 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NavigationChatBubble from "@/components/NavigationChatBubble";
+
+// Disable browser scroll restoration to prevent unwanted auto-scrolling
+if (typeof window !== 'undefined') {
+  window.history.scrollRestoration = 'manual';
+}
 
 // Lazy load all pages for better performance
 const Index = lazy(() => import("./pages/Index"));
