@@ -6,9 +6,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Heart, Calendar, User, Coins, Edit, Home, ArrowLeft } from "lucide-react";
+import { MessageSquare, Heart, Calendar, User, Coins, Edit, Home, ArrowLeft, Bot } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import CommentSystem from "./CommentSystem";
+import ChatHistoryTab from "./ChatHistoryTab";
 
 interface Profile {
   id: string;
@@ -299,9 +300,15 @@ const UserProfile = () => {
 
       {/* Content Tabs */}
       <Tabs defaultValue="posts" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className={`grid w-full ${isOwnProfile ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
           <TabsTrigger value="comments">Comments ({comments.length})</TabsTrigger>
+          {isOwnProfile && (
+            <TabsTrigger value="chats" className="flex items-center gap-1">
+              <Bot className="h-4 w-4" />
+              Chat History
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="posts" className="space-y-4">
@@ -360,6 +367,12 @@ const UserProfile = () => {
             </Card>
           )}
         </TabsContent>
+
+        {isOwnProfile && (
+          <TabsContent value="chats" className="space-y-4">
+            <ChatHistoryTab userId={userId!} isOwnProfile={isOwnProfile} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
