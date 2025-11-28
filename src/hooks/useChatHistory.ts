@@ -110,7 +110,7 @@ export const useChatHistory = () => {
         return null;
       }
 
-      setMessages(prev => [...prev, data as ChatMessage]);
+      // Don't update local state here - caller already handles it
       return data as ChatMessage;
     } catch (error) {
       console.error('Error saving message:', error);
