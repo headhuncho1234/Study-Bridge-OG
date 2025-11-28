@@ -9,9 +9,11 @@ import ScholarshipsList from "@/components/scholarships/ScholarshipsList";
 import logo from "@/assets/studybridge-logo.png";
 
 const Index = () => {
-  // Always scroll to top when landing on homepage
+  // Always scroll to top when landing on homepage - use requestAnimationFrame to ensure it runs after render
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    });
   }, []);
   return (
     <div className="min-h-screen">

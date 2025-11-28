@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Loader2, Copy, Flag, ExternalLink, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,16 +44,24 @@ const HomepageAIAssistant = () => {
     setMessages: setChatMessages
   } = useChatHistory();
 
-   const location = useLocation();
+  const location = useLocation();
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
+  // Only scroll to hash on intentional navigation (not initial load)
   useEffect(() => {
-      if (location.hash) {
-        const section = document.querySelector(location.hash);
-        if (section) {
-          section.scrollIntoView({ behavior: "smooth" });
-        }
+    if (location.hash && hasUserInteracted) {
+      const section = document.querySelector(location.hash);
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth" });
       }
-    }, [location]);
+    }
+  }, [location.hash, hasUserInteracted]);
+
+  // Mark as interacted after initial mount
+  useEffect(() => {
+    const timer = setTimeout(() => setHasUserInteracted(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
   
   // localStorage fallback for guest users
   const [guestMessages, setGuestMessages] = useLocalStorage<any[]>('lovable_ai_session_v1', []);
@@ -64,7 +71,7 @@ const HomepageAIAssistant = () => {
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('Processing your question...');
   const [lastUserMessage, setLastUserMessage] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Use database messages for logged-in users, localStorage for guests
@@ -77,13 +84,19 @@ const HomepageAIAssistant = () => {
     }
   } : setGuestMessages;
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Scroll within the chat area only, not the whole page
+  const scrollToBottom = useCallback(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    }
+  }, []);
 
+  // Only scroll after user has interacted (prevents auto-scroll on page load)
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (hasUserInteracted && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, hasUserInteracted, scrollToBottom]);
 
   // Add initial welcome message if no messages exist
   useEffect(() => {
@@ -510,7 +523,10 @@ const HomepageAIAssistant = () => {
             </div>
           </CardHeader>
 
-          <ScrollArea className="h-96">
+          <div 
+            ref={scrollAreaRef}
+            className="h-96 overflow-y-auto"
+          >
             <CardContent className="p-6 space-y-4">
               {messages.map((message) => (
                 <div key={message.id}>
@@ -531,9 +547,8 @@ const HomepageAIAssistant = () => {
                   </div>
                 </div>
               )}
-              <div ref={messagesEndRef} />
             </CardContent>
-          </ScrollArea>
+          </div>
 
           <div className="p-6 border-t bg-background rounded-b-lg">
             <div className="flex gap-3 mb-3">
