@@ -269,16 +269,18 @@ const HomepageAIAssistant = () => {
         aiContent = data?.message || getFallbackResponse(userMessageContent);
       }
       
+      const assistantMessage = {
+        id: (Date.now() + 1).toString(),
+        session_id: currentSession?.id || '',
+        role: 'assistant' as const,
+        content: aiContent,
+        created_at: new Date().toISOString()
+      };
+      
       if (user && currentSession) {
         await saveMessage('assistant', aiContent);
+        setChatMessages(prev => [...prev, assistantMessage]);
       } else {
-        const assistantMessage = {
-          id: (Date.now() + 1).toString(),
-          session_id: '',
-          role: 'assistant' as const,
-          content: aiContent,
-          created_at: new Date().toISOString()
-        };
         setMessages(prev => [...prev, assistantMessage]);
       }
 
@@ -304,16 +306,18 @@ const HomepageAIAssistant = () => {
         });
       }
       
+      const errorMessage = {
+        id: (Date.now() + 2).toString(),
+        session_id: currentSession?.id || '',
+        role: 'assistant' as const,
+        content: errorContent,
+        created_at: new Date().toISOString()
+      };
+      
       if (user && currentSession) {
         await saveMessage('assistant', errorContent);
+        setChatMessages(prev => [...prev, errorMessage]);
       } else {
-        const errorMessage = {
-          id: (Date.now() + 2).toString(),
-          session_id: '',
-          role: 'assistant' as const,
-          content: errorContent,
-          created_at: new Date().toISOString()
-        };
         setMessages(prev => [...prev, errorMessage]);
       }
     } finally {
