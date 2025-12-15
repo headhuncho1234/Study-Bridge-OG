@@ -1,7 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +13,36 @@ const corsHeaders = {
 
 const OPENAI_TIMEOUT = 25000; // 25 seconds
 const MAX_RETRIES = 2;
+
+// Simple in-memory rate limiting for unauthenticated requests
+// In production, consider using Redis or a database
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const GUEST_RATE_LIMIT = 10; // 10 requests per minute for guests
+const AUTH_RATE_LIMIT = 30; // 30 requests per minute for authenticated users
+
+function getClientIP(req: Request): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+         req.headers.get('x-real-ip') || 
+         'unknown';
+}
+
+function checkRateLimit(key: string, limit: number): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: limit - 1 };
+  }
+  
+  if (record.count >= limit) {
+    return { allowed: false, remaining: 0 };
+  }
+  
+  record.count++;
+  return { allowed: true, remaining: limit - record.count };
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -23,7 +56,59 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
+    // Check for authenticated user
+    const authHeader = req.headers.get('authorization');
+    let userId: string | null = null;
+    let isAuthenticated = false;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const token = authHeader.replace('Bearer ', '');
+      
+      // Use the anon key token to get user
+      const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+      
+      if (user && !authError) {
+        userId = user.id;
+        isAuthenticated = true;
+        console.log('Authenticated request from user:', userId);
+      }
+    }
+
+    // Apply rate limiting
+    const clientIP = getClientIP(req);
+    const rateLimitKey = isAuthenticated ? `user:${userId}` : `ip:${clientIP}`;
+    const rateLimit = isAuthenticated ? AUTH_RATE_LIMIT : GUEST_RATE_LIMIT;
+    
+    const { allowed, remaining } = checkRateLimit(rateLimitKey, rateLimit);
+    
+    if (!allowed) {
+      console.warn(`Rate limit exceeded for ${rateLimitKey}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Rate limit exceeded. Please try again in a minute.',
+          error_type: 'RATE_LIMIT'
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': '60'
+          } 
+        }
+      );
+    }
+
     const { message, context, session_history, user_profile } = await req.json();
+    
+    // Log request for audit trail
+    console.log(`Chat request: authenticated=${isAuthenticated}, ip=${clientIP}, message_length=${message?.length || 0}`);
     
     if (!message || message.trim().length === 0) {
       return new Response(
