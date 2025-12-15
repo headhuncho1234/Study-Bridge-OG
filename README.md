@@ -1,5 +1,5 @@
-# Welcome to your Lovable project
-
+# Welcome to Study Bridge: One Stop Shop 
+#  A Generative AI solution to ANY student's academic needs 
 ## Project info
 
 **URL**: https://lovable.dev/projects/24f056f6-61dc-4e64-a060-7c9dfa98e2c4
