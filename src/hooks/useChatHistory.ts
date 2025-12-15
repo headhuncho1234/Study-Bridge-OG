@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -20,14 +20,18 @@ export interface ChatSession {
 }
 
 export const useChatHistory = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sessionCreatedRef = useRef(false);
 
   // Create a new chat session
   const createSession = async (): Promise<ChatSession | null> => {
+    if (sessionCreatedRef.current) return currentSession;
+    sessionCreatedRef.current = true;
+    
     try {
       setError(null);
       const sessionData: any = {
@@ -48,6 +52,7 @@ export const useChatHistory = () => {
       if (error) {
         console.error('Error creating session:', error);
         setError('Failed to create chat session');
+        sessionCreatedRef.current = false;
         return null;
       }
 
@@ -57,6 +62,7 @@ export const useChatHistory = () => {
     } catch (error) {
       console.error('Error creating session:', error);
       setError(error instanceof Error ? error.message : 'Unknown error');
+      sessionCreatedRef.current = false;
       return null;
     }
   };
@@ -138,16 +144,16 @@ export const useChatHistory = () => {
     }
   };
 
-  // Initialize session on mount
+  // Initialize session after auth is ready
   useEffect(() => {
-    if (!currentSession) {
+    if (!authLoading && !currentSession && !sessionCreatedRef.current) {
       createSession();
     }
-  }, []);
+  }, [authLoading]);
 
-  // Load messages when session changes
+  // Load messages when session changes (only on initial load)
   useEffect(() => {
-    if (currentSession) {
+    if (currentSession && messages.length === 0) {
       loadMessages(currentSession.id);
     }
   }, [currentSession]);
