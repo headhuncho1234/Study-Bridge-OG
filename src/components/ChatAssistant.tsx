@@ -133,7 +133,7 @@ const ChatAssistant = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyZ2d1enVvYnd6YmFhdmFlY2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDgyNzYsImV4cCI6MjA3MjYyNDI3Nn0.UHUg1cMmauQRBm5gkuSKqppH_U-Cqns4M225_4xwqPc',
+          'Authorization': 'Bearer sb_publishable_XSsWDnoHOHflNbXyHRFclg_abLxLuAj',
         },
         body: JSON.stringify({ 
           message: userMessageContent,
