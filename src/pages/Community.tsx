@@ -109,6 +109,7 @@ const Community = () => {
   const [userLikes, setUserLikes] = useState<Map<string, { isLike: boolean; id: string }>>(new Map());
   const [showWhoLiked, setShowWhoLiked] = useState<string | null>(null);
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
+  const [expandedContent, setExpandedContent] = useState<Set<string>>(new Set());
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -650,8 +651,22 @@ const Community = () => {
                     </CardHeader>
                     
                     <CardContent>
-                      <div className="text-muted-foreground mb-4 line-clamp-3 whitespace-pre-line">
-                        {sanitizeAndFormatContent(post.content)}
+                      <div className="mb-4">
+                        <div className={`text-muted-foreground whitespace-pre-line ${expandedContent.has(post.id) ? '' : 'line-clamp-6'}`}>
+                          {sanitizeAndFormatContent(post.content)}
+                        </div>
+                        {post.content.length > 300 && (
+                          <button
+                            onClick={() => setExpandedContent(prev => {
+                              const next = new Set(prev);
+                              next.has(post.id) ? next.delete(post.id) : next.add(post.id);
+                              return next;
+                            })}
+                            className="text-sm text-primary font-medium mt-1 hover:underline focus:outline-none"
+                          >
+                            {expandedContent.has(post.id) ? 'Show less ↑' : 'Read more ↓'}
+                          </button>
+                        )}
                       </div>
                       
                       {post.images && post.images.length > 0 && (
