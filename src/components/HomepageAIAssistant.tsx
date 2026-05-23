@@ -234,7 +234,7 @@ const HomepageAIAssistant = () => {
         content: m.content
       }));
 
-      const response = await fetch('https://brgguzuobwzbaavaecax.supabase.co/functions/v1/chat', {
+      const response = await fetch('https://etjeajrlsawramalswxr.supabase.co/functions/v1/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
