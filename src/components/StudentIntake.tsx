@@ -42,18 +42,12 @@ const StudentIntake = () => {
 
   const generateMatches = async (formData: QuestionnaireData) => {
     setIsGeneratingMatches(true);
-    
-    // Define actualMajor at the start so it's available in catch block
-    const actualMajor = formData.major === "other" && formData.customMajor 
-      ? formData.customMajor 
-      : formData.major;
-    
-    try {
-      // Use custom major if "other" is selected
-      const actualMajor = formData.major === "other" && formData.customMajor 
-        ? formData.customMajor 
-        : formData.major;
 
+    const actualMajor = formData.major === "other" && formData.customMajor
+      ? formData.customMajor
+      : formData.major;
+
+    try {
       const prompt = `Generate personalized university search results for international students based on the questionnaire data provided.
 
 Student Profile: ${JSON.stringify({...formData, actualMajor})}
@@ -68,11 +62,11 @@ Each university result MUST include ALL these fields:
 - acceptance_rate: Acceptance rate with % (e.g., "31.8%")
 - difficulty: One of ["Low", "Moderate", "High", "Very High"]
 - student_body: Approximate number of enrolled students (integer)
-- description: 1–2 sentence summary of the school
+- description: 1-2 sentence summary of the school
 - programs: Array of top program areas (e.g., ["Engineering", "Business", "Liberal Arts"])
 - school_scholarships: Object with merit_scholarships array containing objects with name, amount, and eligibility
 - website: Official university website (if available)
-- personalized_summary: A short explanation of why this school matches the student's preferences
+- personalized_summary: A short explanation of why this school matches the student preferences
 
 Return ONLY valid JSON array of 3-5 universities matching this format:
 [
@@ -92,7 +86,7 @@ Return ONLY valid JSON array of 3-5 universities matching this format:
       ]
     },
     "website": "https://www.utexas.edu",
-    "personalized_summary": "Strong in your preferred field of engineering and generous scholarships."
+    "personalized_summary": "Strong in your preferred field with generous scholarships."
   }
 ]
 
@@ -102,24 +96,31 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
         body: { message: prompt, context: 'university_matching' }
       });
 
-      if (error) {
-        throw error;
+      if (error) throw error;
+
+      // Parse the JSON response — handle markdown fences, arrays, and wrapped objects
+      let rawText = (data.message || data.response || '');
+      rawText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+      let matchesArray;
+      const arrayStart = rawText.indexOf('[');
+      const arrayEnd = rawText.lastIndexOf(']') + 1;
+      const objStart = rawText.indexOf('{');
+      const objEnd = rawText.lastIndexOf('}') + 1;
+
+      if (arrayStart !== -1 && arrayEnd > arrayStart) {
+        matchesArray = JSON.parse(rawText.substring(arrayStart, arrayEnd));
+      } else if (objStart !== -1 && objEnd > objStart) {
+        const parsed = JSON.parse(rawText.substring(objStart, objEnd));
+        matchesArray = parsed.matches || parsed.universities || parsed.results || [];
+      } else {
+        throw new Error('No valid JSON found in AI response');
       }
 
-      // Parse the JSON response
-      let jsonString = data.message || data.response;
-      
-      // Find JSON array in response
-      const arrayStart = jsonString.indexOf('[');
-      const arrayEnd = jsonString.lastIndexOf(']') + 1;
-      
-      if (arrayStart !== -1 && arrayEnd !== -1) {
-        jsonString = jsonString.substring(arrayStart, arrayEnd);
+      if (!Array.isArray(matchesArray) || matchesArray.length === 0) {
+        throw new Error('No university matches returned');
       }
-      
-      const matchesArray = JSON.parse(jsonString);
-      
-      // Convert to expected format for ResultsDisplay
+
       const matchData = {
         matches: matchesArray,
         profile_summary: {
@@ -128,34 +129,32 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
           budget: formData.budget
         }
       };
-      
-      // Navigate to results page with match data
-      navigate('/results', { 
-        state: { 
+
+      navigate('/results', {
+        state: {
           matchData: {
             ...matchData,
             actualMajor: actualMajor,
             originalProfile: formData
           }
-        } 
+        }
       });
-      
+
       toast({
         title: "University Matches Generated! ✨",
         description: `Found ${matchData.matches?.length || 0} personalized matches for ${actualMajor}!`
       });
     } catch (error) {
       console.error('Error generating matches:', error);
-      
+
       toast({
         title: "Generation Failed",
         description: "Unable to generate university matches. Please try again.",
         variant: "destructive"
       });
-      
-      // Navigate to results with error state
-      navigate('/results', { 
-        state: { 
+
+      navigate('/results', {
+        state: {
           matchData: {
             matches: [],
             profile_summary: {
@@ -166,27 +165,17 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
             hasError: true,
             originalProfile: formData
           }
-        } 
+        }
       });
     } finally {
       setIsGeneratingMatches(false);
     }
   };
 
-  const handleStartQuestionnaire = () => {
-    setShowForm(true);
-  };
+  const handleStartQuestionnaire = () => setShowForm(true);
+  const handleQuestionnaireSubmit = (data: QuestionnaireData) => generateMatches(data);
+  const handleStartNew = () => setShowForm(false);
 
-  const handleQuestionnaireSubmit = (data: QuestionnaireData) => {
-    generateMatches(data);
-  };
-
-  const handleStartNew = () => {
-    setShowForm(false);
-  };
-
-
-  // Show questionnaire form if started
   if (showForm) {
     return (
       <section className="py-20 px-4">
@@ -199,7 +188,6 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
               Help us find your perfect university matches
             </p>
           </div>
-
           <Card className="shadow-elegant">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -208,7 +196,7 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <QuestionnaireForm 
+              <QuestionnaireForm
                 onSubmit={handleQuestionnaireSubmit}
                 isLoading={isGeneratingMatches}
               />
@@ -219,7 +207,6 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
     );
   }
 
-  // Show homepage with CTA
   return (
     <section className="py-20 px-4">
       <div className="max-w-4xl mx-auto">
@@ -230,7 +217,6 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
           <p className="text-muted-foreground text-lg mb-8">
             Get AI-powered recommendations tailored to your profile, goals, and preferences
           </p>
-          
           <div className="flex flex-col items-center gap-6">
             <section id="questionnaire-section">
               <button
@@ -241,7 +227,6 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
                 Start Questionnaire
               </button>
             </section>
-            
             <div className="grid md:grid-cols-3 gap-6 mt-8 max-w-3xl">
               <div className="text-center p-6 bg-card rounded-lg shadow-card">
                 <University className="h-8 w-8 text-primary mx-auto mb-3" />
@@ -250,7 +235,6 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
                   AI-powered analysis of 10+ factors including academics, finances, and preferences
                 </p>
               </div>
-              
               <div className="text-center p-6 bg-card rounded-lg shadow-card">
                 <Sparkles className="h-8 w-8 text-primary mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">Personalized Results</h3>
@@ -258,7 +242,6 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
                   Custom recommendations with fit scores, scholarships, and next steps
                 </p>
               </div>
-              
               <div className="text-center p-6 bg-card rounded-lg shadow-card">
                 <University className="h-8 w-8 text-primary mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">U.S. Focused</h3>
@@ -269,8 +252,6 @@ Do NOT return plain text, tables, or markdown. Only return valid JSON following 
             </div>
           </div>
         </div>
-
-        {/* Matches Panel Placeholder */}
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
