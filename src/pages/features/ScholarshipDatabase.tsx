@@ -103,7 +103,7 @@ const ScholarshipDatabase = () => {
                                                             <Tabs defaultValue={showPersonalized ? "matches" : "all"} className="space-y-6">
                                                                             <TabsList>
                                                                               {showPersonalized && <TabsTrigger value="matches">My Matches ({matches.length})</TabsTrigger>TabsTrigger>}
-                                                                                              <TabsTrigger value="all">All Scholarships {!allLoading && `(${filteredScholarships.length})`}</TabsTrigger>TabsTrigger>
+                                                                                                                                      <TabsTrigger value="all">All Scholarships</TabsTrigger>TabsTrigger></TabsTrigger>
                                                                             </TabsList>TabsList>
                                                               {showPersonalized && (
                               <TabsContent value="matches" className="space-y-4">
